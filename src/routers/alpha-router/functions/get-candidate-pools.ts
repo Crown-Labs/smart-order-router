@@ -1,9 +1,9 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@uniswap/sdk-core';
+import { isNativeCurrency } from '@uniswap/universal-router-sdk';
 import { FeeAmount } from '@uniswap/v3-sdk';
 import _ from 'lodash';
 
-import { isNativeCurrency } from '@uniswap/universal-router-sdk';
 import {
   DAI_OPTIMISM_SEPOLIA,
   ITokenListProvider,
@@ -34,7 +34,6 @@ import {
   DAI_OPTIMISM_GOERLI,
   DAI_POLYGON_MUMBAI,
   DAI_SEPOLIA,
-  DAI_UNICHAIN,
   FEI_MAINNET,
   ITokenProvider,
   USDB_BLAST,
@@ -51,7 +50,6 @@ import {
   USDC_OPTIMISM_GOERLI,
   USDC_POLYGON,
   USDC_SEPOLIA,
-  USDC_UNICHAIN,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,
@@ -250,11 +248,6 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.BASE_SEPOLIA]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
     USDC_BASE_SEPOLIA,
-  ],
-  [ChainId.UNICHAIN]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
-    DAI_UNICHAIN,
-    USDC_UNICHAIN,
   ],
 };
 

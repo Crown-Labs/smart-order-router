@@ -1,12 +1,15 @@
 import { ChainId, Currency } from '@uniswap/sdk-core';
+import { NoTickDataProvider } from '@uniswap/v3-sdk';
 import { Pool } from '@uniswap/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
-import { IMulticallProvider, Result } from '../multicall-provider';
-import { ProviderConfig } from '../provider';
+import JSBI from 'jsbi';
 
 import { StateView__factory } from '../../types/other/factories/StateView__factory';
+import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
+import { IMulticallProvider, Result } from '../multicall-provider';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
+import { ProviderConfig } from '../provider';
+import { BASE_TOKENIZE_UNDERLYING } from '../token-provider';
 
 type V4ISlot0 = ISlot0 & {
   poolId: string;
@@ -199,6 +202,37 @@ export class V4PoolProvider
   protected instantiatePoolAccessor(poolIdentifierToPool: {
     [p: string]: Pool;
   }): V4PoolAccessor {
+    // Kittycorn: implements a custom pool accessor that allows for supported Tokenize token path
+    BASE_TOKENIZE_UNDERLYING[this.chainId]?.forEach((base) => {
+      const currencyA = base.tokenize as Currency;
+      const currencyB = base.underlying as Currency;
+      const [currency0, currency1] = sortsBefore(currencyA, currencyB)
+        ? [currencyA, currencyB]
+        : [currencyB, currencyA];
+
+      const pool = new Pool(
+        currency0,
+        currency1,
+        3000, // default fee for Tokenize
+        60, // default tickSpacing for Tokenize
+        '0x0000000000000000000000000000000000000000', // hooks
+        JSBI.BigInt('79228162514264337593543950336'), // sqrtRatioX96 1:1
+        JSBI.BigInt('100000000000000000'), // liquidity
+        0, // tickCurrent
+        new NoTickDataProvider() // ticks?: TickDataProvider
+      );
+
+      const { poolId } = this.getPoolId(
+        pool.currency0,
+        pool.currency1,
+        pool.fee,
+        pool.tickSpacing,
+        pool.hooks
+      );
+
+      poolIdentifierToPool[poolId] = pool;
+    });
+
     return {
       getPool: (
         currencyA: Currency,
