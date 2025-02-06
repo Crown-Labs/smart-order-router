@@ -757,6 +757,14 @@ export const USDC_UNICHAIN_SEPOLIA = new Token(
   'USDC Token'
 );
 
+export const USDC_UNICHAIN = new Token(
+  ChainId.UNICHAIN,
+  '',
+  6,
+  'USDC',
+  'USDC Token'
+);
+
 export const USDC_BASE_SEPOLIA = new Token(
   ChainId.BASE_SEPOLIA,
   '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
