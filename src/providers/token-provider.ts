@@ -1104,14 +1104,14 @@ export const V4_SEPOLIA_TEST_B = new Token(
 // Kittycorn: Setup Tokenize Token
 export const TUSDC_MAINNET = new Token(
   ChainId.MAINNET,
-  '0x88B9Ad010A699Cc0c8C5C5EA8bAF90A0C375df1a',
+  '0xf975A646FCa589Be9fc4E0C28ea426A75645fB1f',
   6,
   'Kittycorn Tokenize USDC',
   'tUSDC'
 );
 export const TUSDT_MAINNET = new Token(
   ChainId.MAINNET,
-  '0xA343B1FC2897b8C49A72A9A0B2675cB9c7664e8c',
+  '0x88B9Ad010A699Cc0c8C5C5EA8bAF90A0C375df1a',
   6,
   'Kittycorn Tokenize USDT',
   'tUSDT'
