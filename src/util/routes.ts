@@ -1,12 +1,13 @@
 import { Protocol } from '@uniswap/router-sdk';
 import { TPool } from '@uniswap/router-sdk/dist/utils/TPool';
-import { Currency, Percent } from '@uniswap/sdk-core';
+import { ChainId, Currency, Percent, Token } from '@uniswap/sdk-core';
 import { Pair } from '@uniswap/v2-sdk';
 import { Pool as V3Pool } from '@uniswap/v3-sdk';
 import { Pool as V4Pool } from '@uniswap/v4-sdk';
 import _ from 'lodash';
 
 import { CachedRoutes } from '../providers';
+import { BASE_TOKENIZE_UNDERLYING } from '../providers/token-provider';
 import {
   AlphaRouterConfig,
   RouteWithValidQuote,
@@ -15,10 +16,7 @@ import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
-import { CurrencyAmount } from '.';
-
-import { ChainId, Token } from '@uniswap/sdk-core';
-import { BASE_TOKENIZE_UNDERLYING } from '../providers/token-provider';
+import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -94,6 +92,14 @@ export const routeToString = (route: SupportedRoutes): string => {
         V3_CORE_FACTORY_ADDRESSES[pool.chainId]
       )}]`;
     } else if (pool instanceof V4Pool) {
+      // Special case in the case of ETH/WETH fake pool
+      // where we do not want to return the fake pool in the route string as it is not a real pool
+      if (
+        pool.tickSpacing ===
+        V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId].tickSpacing
+      ) {
+        return ' --  ';
+      }
       // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
       const chainId = pool.chainId as ChainId;
       const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
