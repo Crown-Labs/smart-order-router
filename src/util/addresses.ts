@@ -1,6 +1,7 @@
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import {
   ChainId,
+  // eslint-disable-next-line sort-imports
   CHAIN_TO_ADDRESSES_MAP,
   Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
