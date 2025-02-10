@@ -53,8 +53,6 @@ import {
   WLD_WORLDCHAIN,
   WMATIC_POLYGON,
   WSTETH_MAINNET,
-  TUSDC_MAINNET,
-  TUSDT_MAINNET,
 } from './token-provider';
 import { V3SubgraphPool } from './v3/subgraph-provider';
 
