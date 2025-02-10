@@ -1,7 +1,7 @@
 import { ADDRESS_ZERO } from '@uniswap/router-sdk';
 import {
-  CHAIN_TO_ADDRESSES_MAP,
   ChainId,
+  CHAIN_TO_ADDRESSES_MAP,
   Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
@@ -179,7 +179,7 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
 export const STATE_VIEW_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4StateView,
-  [ChainId.MAINNET]: '0xe3EF345391654121f385679613Cea79A692C2Dd8',
+  [ChainId.MAINNET]: '0x23228469b3439d81DC64e3523068976201bA08C3',
 };
 
 export const OVM_GASPRICE_ADDRESS =
