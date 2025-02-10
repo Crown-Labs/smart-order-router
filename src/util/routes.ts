@@ -16,7 +16,7 @@ import { MixedRoute, SupportedRoutes } from '../routers/router';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
-import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
+import { CurrencyAmount } from '.';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -92,14 +92,6 @@ export const routeToString = (route: SupportedRoutes): string => {
         V3_CORE_FACTORY_ADDRESSES[pool.chainId]
       )}]`;
     } else if (pool instanceof V4Pool) {
-      // Special case in the case of ETH/WETH fake pool
-      // where we do not want to return the fake pool in the route string as it is not a real pool
-      if (
-        pool.tickSpacing ===
-        V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId].tickSpacing
-      ) {
-        return ' --  ';
-      }
       // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
       const chainId = pool.chainId as ChainId;
       const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
