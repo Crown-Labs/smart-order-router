@@ -114,8 +114,8 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
-  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
   // Kittycorn: Using KittycornV4Quoter
+  [ChainId.SEPOLIA]: '0x8a2D75bAadcd2C71b2aCF715fc3Da68964CEA48e', // CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
   [ChainId.MAINNET]: '0x1F585372F116E1055AF2bED81a808DDf9638dCCD',
 };
 
@@ -179,7 +179,7 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
 
 export const STATE_VIEW_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
-  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4StateView,
+  [ChainId.SEPOLIA]: '0xE1Dd9c3fA50EDB962E442f60DfBc432e24537E4C', // CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4StateView,
   [ChainId.MAINNET]: '0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227',
 };
 
