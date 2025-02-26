@@ -7,6 +7,9 @@ build:
 sepolia-v4-usdt-usdc:
 	./bin/cli quote --tokenIn 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0 --tokenOut 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8 --amount 3500 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)
 
+sepolia-v4-usdt-usdc-exatOut:
+	./bin/cli quote --tokenIn 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0 --tokenOut 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8 --amount 3500 --exactOut --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)
+
 sepolia-v4-usdc-weth:
 	./bin/cli quote --tokenIn 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8 --tokenOut 0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c --amount 3500 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)	
 
