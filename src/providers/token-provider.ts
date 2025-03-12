@@ -1201,8 +1201,9 @@ export function getSupportUnderlyingByTokenize(
 ): Token | undefined {
   const token = BASE_TOKENIZE_UNDERLYING[chainId]?.find(
     (token) =>
+      tokenize.address && // Check skip for Ether type is not have address
       token.tokenize.address.toLocaleLowerCase() ===
-      tokenize.address.toLocaleLowerCase()
+        tokenize.address.toLocaleLowerCase()
   );
   return token ? token.underlying : undefined;
 }
@@ -1213,8 +1214,9 @@ export function getSupportTokenizeByUnderlying(
 ): Token | undefined {
   const token = BASE_TOKENIZE_UNDERLYING[chainId]?.find(
     (token) =>
+      underlying.address && // Check skip for Ether type is not have address
       token.underlying.address.toLocaleLowerCase() ===
-      underlying.address.toLocaleLowerCase()
+        underlying.address.toLocaleLowerCase()
   );
   return token ? token.tokenize : undefined;
 }
