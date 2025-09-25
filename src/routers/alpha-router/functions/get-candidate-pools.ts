@@ -2,6 +2,7 @@ import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@kittycorn-labs/sdk-core';
 import { isNativeCurrency } from '@kittycorn-labs/universal-router-sdk';
 import { FeeAmount } from '@kittycorn-labs/v3-sdk';
+import { BASE_TOKENIZE_UNDERLYING } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
 
 import {
@@ -743,6 +744,23 @@ export async function getV4CandidatePools({
 
   addToAddressSet(topByTVLUsingTokenOutSecondHops);
 
+  // kittycorn top by tokenize pools
+  const tokenizes =
+    BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
+      return base.tokenize.address.toLocaleLowerCase();
+    }) || [];
+  const topByTokenize = _(subgraphPoolsSorted)
+    .filter((subgraphPool) => {
+      return (
+        !poolAddressesSoFar.has(subgraphPool.id) &&
+        (tokenizes.includes(subgraphPool.token0.id.toLowerCase()) ||
+          tokenizes.includes(subgraphPool.token1.id.toLowerCase()))
+      );
+    })
+    .value();
+
+  addToAddressSet(topByTokenize);
+
   const subgraphPools = _([
     ...topByBaseWithTokenIn,
     ...topByBaseWithTokenOut,
@@ -753,6 +771,7 @@ export async function getV4CandidatePools({
     ...topByTVLUsingTokenOut,
     ...topByTVLUsingTokenInSecondHops,
     ...topByTVLUsingTokenOutSecondHops,
+    ...topByTokenize,
   ])
     .compact()
     .uniqBy((pool) => pool.id)
@@ -775,7 +794,7 @@ export async function getV4CandidatePools({
   const printV4SubgraphPool = (s: V4SubgraphPool) =>
     `${tokenAccessor.getTokenByAddress(s.token0.id)?.symbol ?? s.token0.id}/${
       tokenAccessor.getTokenByAddress(s.token1.id)?.symbol ?? s.token1.id
-    }/${s.feeTier}/${s.tickSpacing}/${s.hooks}`;
+    }/${s.feeTier}/${s.tickSpacing}/${s.hooks}/${s.tvlUSD}/${s.liquidity}`;
 
   log.info(
     {
@@ -790,6 +809,7 @@ export async function getV4CandidatePools({
         topByTVLUsingTokenOutSecondHops.map(printV4SubgraphPool),
       top2DirectSwap: top2DirectSwapPool.map(printV4SubgraphPool),
       top2EthQuotePool: top2EthQuoteTokenPool.map(printV4SubgraphPool),
+      topByTokenize: topByTokenize.map(printV4SubgraphPool),
     },
     `V4 Candidate Pools`
   );
