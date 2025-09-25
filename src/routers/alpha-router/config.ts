@@ -76,7 +76,7 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
           topNWithBaseToken: 2,
         },
         v4PoolSelection: {
-          topN: 2,
+          topN: 10, // Kittycorn: increase default from 2 to 10
           topNDirectSwaps: 2,
           topNTokenInOut: 2,
           topNSecondHop: 1,
