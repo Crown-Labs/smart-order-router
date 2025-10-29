@@ -94,7 +94,7 @@ export abstract class BaseCommand extends Command {
     }),
     maxSwapsPerPath: flags.integer({
       required: false,
-      default: 6, // Kittycorn: increase default from 3 to 6
+      default: 3, // Kittycorn: increase default from 3 to 6
     }),
     minSplits: flags.integer({
       required: false,

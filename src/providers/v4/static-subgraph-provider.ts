@@ -76,9 +76,16 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
     const pools = poolAccessor.getAllPools();
 
     const poolAddressSet = new Set<string>();
+    const MIN_LIQUIDITY_THRESHOLD = JSBI.BigInt(1000); // Filter out pools with very low liquidity
+
     const subgraphPools: V4SubgraphPool[] = _(pools)
       .map((pool) => {
         const { token0, token1, fee, tickSpacing, hooks, liquidity } = pool;
+
+        // Pre-filter: Skip pools with liquidity below threshold
+        if (JSBI.lessThan(liquidity, MIN_LIQUIDITY_THRESHOLD)) {
+          return undefined;
+        }
 
         const poolAddress = Pool.getPoolId(
           token0,
@@ -94,6 +101,11 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
         poolAddressSet.add(poolAddress);
 
         const liquidityNumber = JSBI.toNumber(liquidity);
+
+        // Filter duplicate token pairs (e.g., USDC/USDC)
+        if (token0.equals(token1)) {
+          return undefined;
+        }
 
         return {
           id: poolAddress,
