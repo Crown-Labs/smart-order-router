@@ -2,7 +2,10 @@ import { TPool } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
-import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
+import {
+  BASE_TOKENIZE_UNDERLYING,
+  Pool as V4Pool,
+} from '@kittycorn-labs/v4-sdk';
 
 import {
   getAddressLowerCase,
@@ -155,9 +158,24 @@ export function computeAllRoutes<
           pool.tickSpacing ===
             V4_ETH_WETH_FAKE_POOL[tokenIn.chainId as ChainId].tickSpacing
       ).length > 0;
-    const amendedMaxHops = currentRouteContainsFakeV4Pool
-      ? maxHops + 1
-      : maxHops;
+    let amendedMaxHops = currentRouteContainsFakeV4Pool ? maxHops + 1 : maxHops;
+
+    const tokenizes = BASE_TOKENIZE_UNDERLYING[tokenIn.chainId as ChainId]?.map(
+      (base) => {
+        return base.tokenize.address.toLocaleLowerCase();
+      }
+    );
+
+    for (const pool of pools) {
+      if (pool instanceof V4Pool) {
+        const tokenize0 =
+          !(pool.token0 as Token).isNative &&
+          tokenizes?.includes((pool.token0 as Token).address.toLowerCase());
+        if (tokenize0) {
+          amendedMaxHops = amendedMaxHops + 1;
+        }
+      }
+    }
 
     // amendedMaxHops is the maxHops + 1 if the current route contains a fake v4 pool
     // b/c we want to allow the route to go through the fake v4 pool
