@@ -744,7 +744,7 @@ export async function getV4CandidatePools({
 
   addToAddressSet(topByTVLUsingTokenOutSecondHops);
 
-  // kittycorn top by tokenize pools
+  // Kittycorn top by tokenize pools
   const tokenizes =
     BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
       return base.tokenize.address.toLocaleLowerCase();

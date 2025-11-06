@@ -4,7 +4,7 @@ import {
   SwapRouter as SwapRouter02,
   Trade,
 } from '@kittycorn-labs/router-sdk';
-import { ChainId, Currency, TradeType } from '@kittycorn-labs/sdk-core';
+import { ChainId, Currency, Token, TradeType } from '@kittycorn-labs/sdk-core';
 import {
   SwapRouter as UniversalRouter,
   UNIVERSAL_ROUTER_ADDRESS,
@@ -13,6 +13,7 @@ import { Route as V2RouteRaw } from '@kittycorn-labs/v2-sdk';
 import { Route as V3RouteRaw } from '@kittycorn-labs/v3-sdk';
 import { Route as V4RouteRaw } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
+import { WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import {
   CurrencyAmount,
@@ -91,6 +92,26 @@ export function buildTrade<TTradeType extends TradeType>(
           outputAmount: quoteCurrency,
         };
       } else {
+        // Kittycorn
+        // check first pool is wrapped native
+        // then remove it to avoid fake wrapping in route
+        let routePools = route.pools;
+        {
+          const chainId = tokenInCurrency.chainId as ChainId;
+          const wethAddress =
+            WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLocaleLowerCase() || '';
+          if (
+            tokenInCurrency.isToken &&
+            (tokenInCurrency as Token).address.toLocaleLowerCase() ===
+              wethAddress &&
+            routePools[0]?.currency0.isNative &&
+            (routePools[0]?.currency1 as Token).address.toLocaleLowerCase() ===
+              wethAddress
+          ) {
+            routePools = routePools.slice(1);
+          }
+        }
+
         const quoteCurrency = CurrencyAmount.fromFractionalAmount(
           tokenInCurrency,
           quote.numerator,
@@ -104,7 +125,7 @@ export function buildTrade<TTradeType extends TradeType>(
         );
 
         const routeCurrency = new V4RouteRaw(
-          route.pools,
+          routePools,
           quoteCurrency.currency,
           amountCurrency.currency
         );
