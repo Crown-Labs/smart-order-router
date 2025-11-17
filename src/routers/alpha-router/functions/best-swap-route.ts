@@ -234,8 +234,6 @@ export async function getBestSwapRouteBy(
   const { minSplits, maxSplits, forceCrossProtocol, distributionPercent } =
     routingConfig;
 
-  logWithTime('---------------------------------------\n');
-
   // Kittycorn: Added algorithm to split the 100% amount into tokenize smaller amounts
   // Note: Check if we have a route for 100% amount that is not tokenize route,
   // we will try to split the amount needed to swap through tokenize route
