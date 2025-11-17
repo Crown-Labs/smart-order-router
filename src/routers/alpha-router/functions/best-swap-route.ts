@@ -231,17 +231,25 @@ export async function getBestSwapRouteBy(
     3
   );
 
-  const { minSplits, maxSplits, forceCrossProtocol } = routingConfig;
+  const { minSplits, maxSplits, forceCrossProtocol, distributionPercent } =
+    routingConfig;
+
+  logWithTime('---------------------------------------\n');
 
   // Kittycorn: Added algorithm to split the 100% amount into tokenize smaller amounts
   // Note: Check if we have a route for 100% amount that is not tokenize route,
   // we will try to split the amount needed to swap through tokenize route
   if (
+    distributionPercent != 0 &&
     percentToSortedQuotes[100] &&
     !isTokenizeRoute(percentToSortedQuotes[100][0]!.route)
   ) {
-    // Try to make split percent 5%, 10%, 15%, ..., 45%, and find a tokenize route
-    for (let percent = 5; percent < 50; percent += 5) {
+    // Ex: distributionPercent is 5%, Try to make split percent 5%, 10%, 15%, ..., 45%, and find a tokenize route
+    for (
+      let percent = distributionPercent;
+      percent < 50;
+      percent += distributionPercent
+    ) {
       const basePercent = 100 - percent;
       if (!isTokenizeRoute(percentToSortedQuotes[basePercent]![0]!.route)) {
         // Base percent is not tokenize route, need to look for a tokenize route in split percent
@@ -266,7 +274,11 @@ export async function getBestSwapRouteBy(
         }
       } else {
         // We found a tokenize route for the base percent, so we need to remove routes over base percent
-        for (let remove = 100; remove > basePercent; remove -= 5) {
+        for (
+          let remove = 100;
+          remove > basePercent;
+          remove -= distributionPercent
+        ) {
           delete percentToSortedQuotes[remove];
         }
 
