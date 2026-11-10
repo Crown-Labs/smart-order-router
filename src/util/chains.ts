@@ -512,7 +512,8 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
     case ChainId.MONAD:
       return process.env.JSON_RPC_PROVIDER_MONAD!;
     case ChainId.BASE_SEPOLIA:
-      return process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA!;
+      return (process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA ||
+        process.env.RPC_BASE_SEPOLIA_FORK_URL)!;
     case ChainId.UNICHAIN:
       return process.env.JSON_RPC_PROVIDER_UNICHAIN!;
     case ChainId.SONEIUM:

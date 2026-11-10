@@ -49,13 +49,14 @@ export const routeToPools = (route: SupportedRoutes): TPool[] => {
 
 export const poolToString = (pool: TPool): string => {
   if (pool instanceof V4Pool) {
-    return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
-      pool.token0,
-      pool.token1,
-      pool.fee,
-      pool.tickSpacing,
-      pool.hooks
-    )}]`;
+    // Conversions have no PoolManager liquidity or pool ID. Match exact identities,
+    // not merely the presence of one Tokenize or a matching tick spacing.
+    if (
+      isTokenizeConversion(pool) ||
+      pool.poolId === V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId]?.poolId
+    )
+      return ` -- 0% [${'0x' + '0'.repeat(64)}]`;
+    return ` -- ${pool.fee / 10000}% [${pool.poolId}]`;
   } else if (pool instanceof V3Pool) {
     return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
       pool.token0,
@@ -74,62 +75,22 @@ export const poolToString = (pool: TPool): string => {
   }
 };
 
+/** Format every currency and pool using the original CLI route representation. */
 export const routeToString = (route: SupportedRoutes): string => {
-  const routeStr = [];
   const tokens = routeToTokens(route);
-  const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools = routeToPools(route);
-  const poolFeePath = _.map(pools, (pool) => {
-    if (pool instanceof Pair) {
-      return ` -- [${Pair.getAddress(
-        (pool as Pair).token0,
-        (pool as Pair).token1
-      )}]`;
-    } else if (pool instanceof V3Pool) {
-      return ` -- ${pool.fee / 10000}% [${V3Pool.getAddress(
-        pool.token0,
-        pool.token1,
-        pool.fee,
-        undefined,
-        V3_CORE_FACTORY_ADDRESSES[pool.chainId]
-      )}]`;
-    } else if (pool instanceof V4Pool) {
-      // Special case in the case of ETH/WETH fake pool
-      // where we do not want to return the fake pool in the route string as it is not a real pool
-      if (
-        pool.tickSpacing ===
-        V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId]?.tickSpacing
-      ) {
-        return ' --  ';
-      }
-
-      return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
-        pool.token0,
-        pool.token1,
-        pool.fee,
-        pool.tickSpacing,
-        pool.hooks
-      )}]`;
-    } else {
-      throw new Error(`Unsupported pool ${JSON.stringify(pool)}`);
-    }
-
-    return `${poolToString(pool)} --> `;
-  });
-
-  for (let i = 0; i < tokenPath.length; i++) {
-    routeStr.push(tokenPath[i]);
-    if (i < poolFeePath.length) {
-      routeStr.push(poolFeePath[i]);
-    }
-  }
-
-  return routeStr.join('');
+  return tokens
+    .map(
+      (token, i) =>
+        `${token.symbol}${i < pools.length ? poolToString(pools[i]!) : ''}`
+    )
+    .join('');
 };
 
 export const routeAmountsToString = (
   routeAmounts: RouteWithValidQuote[]
 ): string => {
+  if (routeAmounts.length === 0) return '';
   const total = _.reduce(
     routeAmounts,
     (total: CurrencyAmount, cur: RouteWithValidQuote) => {
