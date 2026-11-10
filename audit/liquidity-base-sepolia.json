@@ -1,0 +1,932 @@
+{
+  "forkBlock": 56910426,
+  "forkTimestamp": 1794303954,
+  "quoteBlock": 56910426,
+  "slippageBps": 100,
+  "maxTokenizeQuoteLossBps": 50,
+  "syntheticLocalFunding": true,
+  "routing": {
+    "protocols": [
+      "V4"
+    ],
+    "maxSwapsPerPath": 2,
+    "maxSplits": 2,
+    "distributionPercent": 50
+  },
+  "note": "Grid measurements capped at 20% price degradation or the largest input, not an absolute maximum. Price degradation is versus the smallest quote in the same mode. Each execution restores the same snapshot.",
+  "measuredAt": "2026-11-10T13:31:42.387Z",
+  "latestStateCheck": {
+    "forkBlock": 56910426,
+    "latestBlock": 56973957,
+    "checks": [
+      {
+        "pool": "0x1261a3218baa8834eb3b5fcb56112fa5a81bed1e0a13b9f8b2eb5c3543e7d2d2",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0x1792d76ebc5d4ef5be93fa88187adb41689e79deb99975694e4dd9c22d85b643",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0x32d1cea8e825dbdafdb17d5f556606e1ac0a1a4477744baba03d9fc0b62d4eb2",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0x025d03111ace126acfa746647812b6e921f950821df269826b73ccffebec9814",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0xcafe1ec4f71a632f8fc57506c478d0b25b399a9aa003c9bc02c444639578ae46",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0xe6412446f8fa1f9cc6eaaed31bf7fa9cd9998b16b9efa9b89725a8af6855898a",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0x4d10dfc28a1135e7506a83c7673594ef3d44f924c7a5b02d35ac05de56cc32be",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0x93a3b188b0cfc6edf74062526e9c432bc03471264a9dac69bdcc2ed7d75fda3a",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0xb07128118853c17b75c67476f130d40089a2286672a348b8a6c817fab165a197",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      },
+      {
+        "pool": "0x6618b3ead2c87a4730c33248993143accfde9ae1d679bb3074d06d3388c6566e",
+        "liquidityUnchanged": true,
+        "priceUnchanged": true
+      }
+    ],
+    "checkedAt": "2026-11-10T13:17:41.051Z",
+    "note": "Only pool liquidity and sqrt price were compared; ERC4626 rates can accrue interest."
+  },
+  "rawMeasurements": 345,
+  "rawSha256": "d8d44ab3d622092c303af7041995c563c8e0b2a0d931a27b458104eba56fe2c7",
+  "reproduce": "CHECK_REFINE=true npm run check:liquidity on a fresh Base Sepolia Anvil fork at block 56910426",
+  "rawReport": ".reports/liquidity.json (generated, ignored)",
+  "scope": "Configured Aave USDC/USDT and WETH, V4 catalog, two AMM hops/two splits. Not all assets or venues on Base Sepolia. Each PASS is a balance-checked local execution; NO_ROUTE is not proof of a network-wide liquidity maximum.",
+  "tokens": [
+    {
+      "symbol": "USDC",
+      "underlying": "0xba50Cd2A20f6DA35D788639E581bca8d0B5d4D5f",
+      "tokenize": "0x0B4104691a6a006F0134d507aAe6d35854BaD924"
+    },
+    {
+      "symbol": "USDT",
+      "underlying": "0x0a215D8ba66387DCA84B284D18c3B4ec3de6E54a",
+      "tokenize": "0x94572cD65df8DAa3A8Da96277FfA2a22ee71b5dC"
+    },
+    {
+      "symbol": "WETH",
+      "underlying": "0x4200000000000000000000000000000000000006",
+      "tokenize": "0xd09EDDa7a0495eAc6B921fb9408d2Ae55220EbC0"
+    }
+  ],
+  "pools": [
+    {
+      "id": "0x1261a3218baa8834eb3b5fcb56112fa5a81bed1e0a13b9f8b2eb5c3543e7d2d2",
+      "token0": "0x0000000000000000000000000000000000000000",
+      "token1": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "fee": "10000",
+      "liquidity": "447213595499"
+    },
+    {
+      "id": "0x1792d76ebc5d4ef5be93fa88187adb41689e79deb99975694e4dd9c22d85b643",
+      "token0": "0x0000000000000000000000000000000000000000",
+      "token1": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "fee": "3000",
+      "liquidity": "18404455982"
+    },
+    {
+      "id": "0x32d1cea8e825dbdafdb17d5f556606e1ac0a1a4477744baba03d9fc0b62d4eb2",
+      "token0": "0x0000000000000000000000000000000000000000",
+      "token1": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "fee": "500",
+      "liquidity": "243657687031"
+    },
+    {
+      "id": "0x025d03111ace126acfa746647812b6e921f950821df269826b73ccffebec9814",
+      "token0": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "token1": "0x4200000000000000000000000000000000000006",
+      "fee": "10000",
+      "liquidity": "1223259019367"
+    },
+    {
+      "id": "0xcafe1ec4f71a632f8fc57506c478d0b25b399a9aa003c9bc02c444639578ae46",
+      "token0": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "token1": "0x4200000000000000000000000000000000000006",
+      "fee": "3000",
+      "liquidity": "66365434"
+    },
+    {
+      "id": "0xe6412446f8fa1f9cc6eaaed31bf7fa9cd9998b16b9efa9b89725a8af6855898a",
+      "token0": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "token1": "0x4200000000000000000000000000000000000006",
+      "fee": "100",
+      "liquidity": "1700077916741531578"
+    },
+    {
+      "id": "0x4d10dfc28a1135e7506a83c7673594ef3d44f924c7a5b02d35ac05de56cc32be",
+      "token0": "0x0a215D8ba66387DCA84B284D18c3B4ec3de6E54a",
+      "token1": "0xba50Cd2A20f6DA35D788639E581bca8d0B5d4D5f",
+      "fee": "500",
+      "liquidity": "25000000000"
+    },
+    {
+      "id": "0x93a3b188b0cfc6edf74062526e9c432bc03471264a9dac69bdcc2ed7d75fda3a",
+      "token0": "0x0B4104691a6a006F0134d507aAe6d35854BaD924",
+      "token1": "0x94572cD65df8DAa3A8Da96277FfA2a22ee71b5dC",
+      "fee": "100",
+      "liquidity": "5277688094"
+    },
+    {
+      "id": "0xb07128118853c17b75c67476f130d40089a2286672a348b8a6c817fab165a197",
+      "token0": "0x0B4104691a6a006F0134d507aAe6d35854BaD924",
+      "token1": "0xd09EDDa7a0495eAc6B921fb9408d2Ae55220EbC0",
+      "fee": "500",
+      "liquidity": "114294073261729"
+    },
+    {
+      "id": "0x6618b3ead2c87a4730c33248993143accfde9ae1d679bb3074d06d3388c6566e",
+      "token0": "0x94572cD65df8DAa3A8Da96277FfA2a22ee71b5dC",
+      "token1": "0xd09EDDa7a0495eAc6B921fb9408d2Ae55220EbC0",
+      "fee": "500",
+      "liquidity": "114351670335091"
+    }
+  ],
+  "summary": [
+    {
+      "group": "USDC/USDT:default",
+      "counts": {
+        "PASS": 21
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "69.0625",
+          "quote": "68.423498",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9962374624453263,
+          "paid": "69.062499",
+          "received": "68.423498"
+        },
+        "nextTestedAbove": {
+          "amount": "69.414062",
+          "quote": "68.768414",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0011222583153456,
+          "paid": "69.414061",
+          "received": "68.768414"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "367.1875",
+          "quote": "349.236291",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.956985739097419,
+          "paid": "367.1875",
+          "received": "349.236292"
+        },
+        "nextTestedAbove": {
+          "amount": "370.703125",
+          "quote": "352.414494",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.001611774810577,
+          "paid": "370.703123",
+          "received": "352.414495"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "6185.416664",
+        "tokenizePercent": 5,
+        "priceDegradationPercent": 38.19015102171742,
+        "paid": "10000.0",
+        "received": "6185.416664"
+      }
+    },
+    {
+      "group": "USDC/USDT:tokenize",
+      "counts": {
+        "PASS": 21
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "69.0625",
+          "quote": "68.423498",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9962374624453263,
+          "paid": "69.062499",
+          "received": "68.423498"
+        },
+        "nextTestedAbove": {
+          "amount": "69.414062",
+          "quote": "68.768414",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0011222583153456,
+          "paid": "69.414061",
+          "received": "68.768414"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "367.1875",
+          "quote": "349.236291",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.956985739097419,
+          "paid": "367.1875",
+          "received": "349.236292"
+        },
+        "nextTestedAbove": {
+          "amount": "370.703125",
+          "quote": "352.414494",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.001611774810577,
+          "paid": "370.703123",
+          "received": "352.414495"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "4296.924889",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 57.06153798726314,
+        "paid": "10000.0",
+        "received": "4296.924891"
+      }
+    },
+    {
+      "group": "USDC/USDT:ordinary",
+      "counts": {
+        "PASS": 24
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "281.054687",
+          "quote": "225.103105",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 0.997194852383998,
+          "paid": "281.054687",
+          "received": "225.103105"
+        },
+        "nextTestedAbove": {
+          "amount": "282.8125",
+          "quote": "226.4968",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 1.00339151492288,
+          "paid": "282.8125",
+          "received": "226.4968"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "1457.03125",
+          "quote": "1120.066086",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 4.976367607880439,
+          "paid": "1457.03125",
+          "received": "1120.066086"
+        },
+        "nextTestedAbove": {
+          "amount": "1465.820312",
+          "quote": "1126.484129",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 5.004903426272211,
+          "paid": "1465.820312",
+          "received": "1126.484129"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "5950.02041",
+        "tokenizePercent": 0,
+        "priceDegradationPercent": 26.451248964758523,
+        "paid": "10000.0",
+        "received": "5950.02041"
+      }
+    },
+    {
+      "group": "USDC/WETH:default",
+      "counts": {
+        "PASS": 21
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "54.296875",
+          "quote": "0.025218572771530906",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9993221506883865,
+          "paid": "54.296875",
+          "received": "0.025218572434078432"
+        },
+        "nextTestedAbove": {
+          "amount": "54.648437",
+          "quote": "0.025380184473008806",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0058506826443714,
+          "paid": "54.648437",
+          "received": "0.025380184596299447"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "370.703125",
+          "quote": "0.165279199285487001",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.964809002392467,
+          "paid": "370.703123",
+          "received": "0.16527920008837236"
+        },
+        "nextTestedAbove": {
+          "amount": "374.21875",
+          "quote": "0.166768339839884997",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.0094153985675955,
+          "paid": "374.218749",
+          "received": "0.166768340650004232"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "2.015109011959394431",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 57.04724309475922,
+        "paid": "10000.0",
+        "received": "2.015109021624498944"
+      }
+    },
+    {
+      "group": "USDC/WETH:tokenize",
+      "counts": {
+        "PASS": 21
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "54.296875",
+          "quote": "0.025218572771530906",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9993221506883865,
+          "paid": "54.296875",
+          "received": "0.025218572434078432"
+        },
+        "nextTestedAbove": {
+          "amount": "54.648437",
+          "quote": "0.025380184473008806",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0058506826443714,
+          "paid": "54.648437",
+          "received": "0.025380184596299447"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "370.703125",
+          "quote": "0.165279199285487001",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.964809002392467,
+          "paid": "370.703123",
+          "received": "0.16527920008837236"
+        },
+        "nextTestedAbove": {
+          "amount": "374.21875",
+          "quote": "0.166768339839884997",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.0094153985675955,
+          "paid": "374.218749",
+          "received": "0.166768340650004232"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "2.015109011959394431",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 57.04724309475922,
+        "paid": "10000.0",
+        "received": "2.015109021624498944"
+      }
+    },
+    {
+      "group": "USDC/WETH:ordinary",
+      "counts": {
+        "NO_ROUTE": 7
+      },
+      "within1Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "within5Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "largestExecuted": null
+    },
+    {
+      "group": "USDT/USDC:default",
+      "counts": {
+        "PASS": 24
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "228.320312",
+          "quote": "279.104552",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 0.999988309989841,
+          "paid": "228.320312",
+          "received": "279.104552"
+        },
+        "nextTestedAbove": {
+          "amount": "230.078125",
+          "quote": "281.2316",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 1.0076432640615418,
+          "paid": "230.078125",
+          "received": "281.2316"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "1184.570312",
+          "quote": "1389.592808",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 4.996503528229212,
+          "paid": "1184.570312",
+          "received": "1389.592808"
+        },
+        "nextTestedAbove": {
+          "amount": "1193.359375",
+          "quote": "1399.383838",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 5.031740203782276,
+          "paid": "1193.359375",
+          "received": "1399.383838"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "8704.868982",
+        "tokenizePercent": 5,
+        "priceDegradationPercent": 29.50227303318099,
+        "paid": "10000.0",
+        "received": "8704.868982"
+      }
+    },
+    {
+      "group": "USDT/USDC:tokenize",
+      "counts": {
+        "PASS": 21
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "69.0625",
+          "quote": "68.286258",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9954624269722823,
+          "paid": "69.062499",
+          "received": "68.286259"
+        },
+        "nextTestedAbove": {
+          "amount": "69.414062",
+          "quote": "68.630486",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0003417606842535,
+          "paid": "69.414061",
+          "received": "68.630486"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "370.703125",
+          "quote": "351.721757",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.997055206108525,
+          "paid": "370.703123",
+          "received": "351.721758"
+        },
+        "nextTestedAbove": {
+          "amount": "374.21875",
+          "quote": "354.890913",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.041593959732172,
+          "paid": "374.21875",
+          "received": "354.890913"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "4290.661499",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 57.03761984055304,
+        "paid": "9999.999999",
+        "received": "4290.661499"
+      }
+    },
+    {
+      "group": "USDT/USDC:ordinary",
+      "counts": {
+        "PASS": 24
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "228.320312",
+          "quote": "279.104552",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 0.999988309989841,
+          "paid": "228.320312",
+          "received": "279.104552"
+        },
+        "nextTestedAbove": {
+          "amount": "230.078125",
+          "quote": "281.2316",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 1.0076432640615418,
+          "paid": "230.078125",
+          "received": "281.2316"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "1184.570312",
+          "quote": "1389.592808",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 4.996503528229212,
+          "paid": "1184.570312",
+          "received": "1389.592808"
+        },
+        "nextTestedAbove": {
+          "amount": "1193.359375",
+          "quote": "1399.383838",
+          "tokenizePercent": 0,
+          "priceDegradationPercent": 5.031740203782276,
+          "paid": "1193.359375",
+          "received": "1399.383838"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "8549.191527",
+        "tokenizePercent": 0,
+        "priceDegradationPercent": 30.763050965643068,
+        "paid": "10000.0",
+        "received": "8549.191527"
+      }
+    },
+    {
+      "group": "USDT/WETH:default",
+      "counts": {
+        "PASS": 21
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "54.296875",
+          "quote": "0.025193404446296432",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9985651687867136,
+          "paid": "54.296875",
+          "received": "0.025193404568679743"
+        },
+        "nextTestedAbove": {
+          "amount": "54.648437",
+          "quote": "0.025354857087158947",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0050850475018414,
+          "paid": "54.648437",
+          "received": "0.025354856750883072"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "370.703125",
+          "quote": "0.165120798811552917",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.960312653822562,
+          "paid": "370.703123",
+          "received": "0.165120799613668805"
+        },
+        "nextTestedAbove": {
+          "amount": "374.21875",
+          "quote": "0.166608586008694582",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.00487907792766,
+          "paid": "374.21875",
+          "received": "0.166608586818037772"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "2.014202444216092738",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 57.0233476037705,
+        "paid": "9999.999999",
+        "received": "2.014202453540428509"
+      }
+    },
+    {
+      "group": "USDT/WETH:tokenize",
+      "counts": {
+        "PASS": 21
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "54.296875",
+          "quote": "0.025193404446296432",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9985651687867136,
+          "paid": "54.296875",
+          "received": "0.025193404568679743"
+        },
+        "nextTestedAbove": {
+          "amount": "54.648437",
+          "quote": "0.025354857087158947",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0050850475018414,
+          "paid": "54.648437",
+          "received": "0.025354856750883072"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "370.703125",
+          "quote": "0.165120798811552917",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.960312653822562,
+          "paid": "370.703123",
+          "received": "0.165120799613668805"
+        },
+        "nextTestedAbove": {
+          "amount": "374.21875",
+          "quote": "0.166608586008694582",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.00487907792766,
+          "paid": "374.21875",
+          "received": "0.166608586818037772"
+        }
+      },
+      "largestExecuted": {
+        "amount": "10000",
+        "quote": "2.014202444216092738",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 57.0233476037705,
+        "paid": "9999.999999",
+        "received": "2.014202453540428509"
+      }
+    },
+    {
+      "group": "USDT/WETH:ordinary",
+      "counts": {
+        "NO_ROUTE": 7
+      },
+      "within1Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "within5Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "largestExecuted": null
+    },
+    {
+      "group": "WETH/USDC:default",
+      "counts": {
+        "PASS": 24
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.03337890625",
+          "quote": "70.350005",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9996411226251389,
+          "paid": "0.03337890625",
+          "received": "70.350006"
+        },
+        "nextTestedAbove": {
+          "amount": "0.0335546875",
+          "quote": "70.716769",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.004842860198052,
+          "paid": "0.033554687499999999",
+          "received": "70.716769"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.17470703125",
+          "quote": "353.350596",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.99637378659219,
+          "paid": "0.174707031249999999",
+          "received": "353.350596"
+        },
+        "nextTestedAbove": {
+          "amount": "0.1755859375",
+          "quote": "355.039459",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.0201169717387195,
+          "paid": "0.1755859375",
+          "received": "355.039459"
+        }
+      },
+      "largestExecuted": {
+        "amount": "1",
+        "quote": "1644.094606",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 22.77257710554744,
+        "paid": "0.999999999999999999",
+        "received": "1644.0946"
+      }
+    },
+    {
+      "group": "WETH/USDC:tokenize",
+      "counts": {
+        "PASS": 24
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.03337890625",
+          "quote": "70.350005",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9996411226251389,
+          "paid": "0.03337890625",
+          "received": "70.350006"
+        },
+        "nextTestedAbove": {
+          "amount": "0.0335546875",
+          "quote": "70.716769",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.004842860198052,
+          "paid": "0.033554687499999999",
+          "received": "70.716769"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.17470703125",
+          "quote": "353.350596",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.99637378659219,
+          "paid": "0.174707031249999999",
+          "received": "353.350596"
+        },
+        "nextTestedAbove": {
+          "amount": "0.1755859375",
+          "quote": "355.039459",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.0201169717387195,
+          "paid": "0.1755859375",
+          "received": "355.039459"
+        }
+      },
+      "largestExecuted": {
+        "amount": "1",
+        "quote": "1644.094606",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 22.77257710554744,
+        "paid": "0.999999999999999999",
+        "received": "1644.0946"
+      }
+    },
+    {
+      "group": "WETH/USDC:ordinary",
+      "counts": {
+        "NO_ROUTE": 8
+      },
+      "within1Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "within5Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "largestExecuted": null
+    },
+    {
+      "group": "WETH/USDT:default",
+      "counts": {
+        "PASS": 24
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.03337890625",
+          "quote": "70.421007",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9997047500010514,
+          "paid": "0.03337890625",
+          "received": "70.421007"
+        },
+        "nextTestedAbove": {
+          "amount": "0.0335546875",
+          "quote": "70.788141",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0049067123529265,
+          "paid": "0.033554687499999999",
+          "received": "70.788142"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.17470703125",
+          "quote": "353.707225",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.996433879650219,
+          "paid": "0.174707031249999999",
+          "received": "353.707225"
+        },
+        "nextTestedAbove": {
+          "amount": "0.1755859375",
+          "quote": "355.397792",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.020177192049358,
+          "paid": "0.1755859375",
+          "received": "355.397792"
+        }
+      },
+      "largestExecuted": {
+        "amount": "1",
+        "quote": "1645.753947",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 22.772626310973454,
+        "paid": "0.999999999999999999",
+        "received": "1645.753943"
+      }
+    },
+    {
+      "group": "WETH/USDT:tokenize",
+      "counts": {
+        "PASS": 24
+      },
+      "within1Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.03337890625",
+          "quote": "70.421007",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 0.9997047500010514,
+          "paid": "0.03337890625",
+          "received": "70.421007"
+        },
+        "nextTestedAbove": {
+          "amount": "0.0335546875",
+          "quote": "70.788141",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 1.0049067123529265,
+          "paid": "0.033554687499999999",
+          "received": "70.788142"
+        }
+      },
+      "within5Percent": {
+        "testedAtOrBelow": {
+          "amount": "0.17470703125",
+          "quote": "353.707225",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 4.996433879650219,
+          "paid": "0.174707031249999999",
+          "received": "353.707225"
+        },
+        "nextTestedAbove": {
+          "amount": "0.1755859375",
+          "quote": "355.397792",
+          "tokenizePercent": 100,
+          "priceDegradationPercent": 5.020177192049358,
+          "paid": "0.1755859375",
+          "received": "355.397792"
+        }
+      },
+      "largestExecuted": {
+        "amount": "1",
+        "quote": "1645.753947",
+        "tokenizePercent": 100,
+        "priceDegradationPercent": 22.772626310973454,
+        "paid": "0.999999999999999999",
+        "received": "1645.753943"
+      }
+    },
+    {
+      "group": "WETH/USDT:ordinary",
+      "counts": {
+        "NO_ROUTE": 8
+      },
+      "within1Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "within5Percent": {
+        "testedAtOrBelow": null,
+        "nextTestedAbove": null
+      },
+      "largestExecuted": null
+    }
+  ]
+}

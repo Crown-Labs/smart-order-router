@@ -3,7 +3,7 @@ import { CurrencyAmount, Percent, TradeType } from '@kittycorn-labs/sdk-core';
 import { KITTYCORN_BASE_SEPOLIA as config } from '@kittycorn-labs/v4-sdk';
 import { strict as assert } from 'assert';
 import { BigNumber, Contract, constants, providers, utils } from 'ethers';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { AlphaRouter, isTokenizeRoute, SwapType } from '../src';
 
 /** Expose discovery only to freeze the test's pool catalog at one fork block. */
@@ -17,6 +17,18 @@ class LiquidityRouter extends AlphaRouter {
 
 /** Sweep actual liquidity with synthetic local funding; never connect to a public execution RPC. */
 async function main() {
+  for (const key of ['CHECK_INPUT', 'CHECK_OUTPUT']) {
+    const symbol = process.env[key];
+    assert(
+      !symbol || config.tokens.some((t) => t.underlying.symbol === symbol),
+      `Unsupported ${key}`
+    );
+  }
+  assert(
+    !process.env.CHECK_INPUT ||
+      process.env.CHECK_INPUT !== process.env.CHECK_OUTPUT,
+    'Choose distinct tokens'
+  );
   const rpc = process.env.ANVIL_RPC_URL || 'http://127.0.0.1:18546';
   assert(
     ['localhost', '127.0.0.1', '[::1]'].includes(new URL(rpc).hostname),
@@ -35,6 +47,7 @@ async function main() {
   const account = '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff';
   const rows: Record<string, unknown>[] = [];
   try {
+    await provider.send('anvil_setBlockTimestampInterval', [1]);
     await provider.send('anvil_impersonateAccount', [account]);
     await provider.send('anvil_setBalance', [
       account,
@@ -81,7 +94,8 @@ async function main() {
       }
       await (await token.approve(config.router, constants.MaxUint256)).wait();
     }
-    const blockNumber = Number(await provider.send('eth_blockNumber', []));
+    // Quote canonical fork state. Local wallet funding does not change pool liquidity.
+    const blockNumber = forkBlock.number;
     const catalog = await new LiquidityRouter({
       chainId: 84532,
       provider,
@@ -132,7 +146,8 @@ async function main() {
             v4SubgraphProvider: { getPools: async () => modePools[mode] },
           });
           let baselineRate: number | undefined;
-          for (const amount of amounts) {
+          const modeStart = rows.length;
+          const checkAmount = async (amount: string) => {
             const row: Record<string, unknown> = {
               pair: `${input.underlying.symbol}/${output.underlying.symbol}`,
               mode,
@@ -179,7 +194,7 @@ async function main() {
               );
               if (!result?.methodParameters) {
                 row.status = 'NO_ROUTE';
-                continue;
+                return row;
               }
               const percent = result.route
                 .filter((r) => isTokenizeRoute(r.route))
@@ -230,7 +245,7 @@ async function main() {
                       value: params.value,
                       gasLimit: 12000000,
                     },
-                    blockNumber
+                    'latest'
                   );
                 } catch (error) {
                   row.error =
@@ -301,16 +316,100 @@ async function main() {
                 )
               );
             }
-            // Beyond this level, a successful transaction is not a usable price limit.
+            return row;
+          };
+          for (const amount of amounts) {
+            const row = await checkAmount(amount);
             if (Number(row.priceDegradationPercent) >= 20) break;
+          }
+          // Optional boundary refinement: keep a passing lower bound, never claim
+          // the interpolated quote or an untested amount is executable.
+          if (process.env.CHECK_REFINE === 'true') {
+            for (const limit of [1, 5]) {
+              for (let attempt = 0; attempt < 10; attempt++) {
+                const samples = rows
+                  .slice(modeStart)
+                  .filter((r) => r.status === 'PASS');
+                const lower = samples
+                  .filter((r) => Number(r.priceDegradationPercent) <= limit)
+                  .sort((a, b) => Number(b.amount) - Number(a.amount))[0];
+                if (!lower) break;
+                const upper = samples
+                  .filter(
+                    (r) =>
+                      Number(r.priceDegradationPercent) > limit &&
+                      Number(r.amount) > Number(lower.amount)
+                  )
+                  .sort((a, b) => Number(a.amount) - Number(b.amount))[0];
+                if (!upper) break;
+                const lo = utils.parseUnits(
+                  String(lower.amount),
+                  input.underlying.decimals
+                );
+                const hi = utils.parseUnits(
+                  String(upper.amount),
+                  input.underlying.decimals
+                );
+                if (hi.sub(lo).lte(lo.div(100).add(1))) break;
+                const row = await checkAmount(
+                  utils.formatUnits(
+                    lo.add(hi).div(2),
+                    input.underlying.decimals
+                  )
+                );
+                if (row.status !== 'PASS') break;
+              }
+            }
           }
         }
       }
     }
   } finally {
+    await provider.send('anvil_removeBlockTimestampInterval', []);
     await provider.send('anvil_stopImpersonatingAccount', [account]);
     assert(await provider.send('evm_revert', [original]));
   }
+  const groups = [...new Set(rows.map((row) => row.pair + ':' + row.mode))];
+  const summary = groups.map((group) => {
+    const samples = rows.filter(
+      (row) => row.pair + ':' + row.mode === group && row.status === 'PASS'
+    );
+    const largest = (limit: number) =>
+      samples
+        .filter((row) => Number(row.priceDegradationPercent) <= limit)
+        .sort((a, b) => Number(b.amount) - Number(a.amount))[0]?.amount ?? null;
+    return {
+      group,
+      testedWithin1Percent: largest(1),
+      testedWithin5Percent: largest(5),
+      largestExecutedInput: largest(Infinity),
+    };
+  });
+  assert(rows.length > 0, 'No measurements were selected');
+  const report = JSON.parse(readFileSync('.reports/liquidity.json', 'utf8'));
+  writeFileSync(
+    '.reports/liquidity.json',
+    JSON.stringify(
+      {
+        ...report,
+        summary,
+        tokens: config.tokens.map((t) => ({
+          symbol: t.underlying.symbol,
+          underlying: t.underlying.address,
+          tokenize: t.tokenize.address,
+        })),
+      },
+      null,
+      2
+    )
+  );
+  console.table(summary);
+  assert(
+    !rows.some(
+      (row) => row.status === 'ERROR' || row.status === 'EXECUTION_REVERT'
+    ),
+    'Some measurements failed; inspect .reports/liquidity.json'
+  );
 }
 main().catch((error) => {
   console.error(error.message);

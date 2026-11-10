@@ -39,3 +39,32 @@
 - SOR no longer installs the old Hardhat route harness, Oclif CLI, or unused NYC tooling. Kept unit tests and the Base Sepolia execution matrix. Removed Optimism bridge SDK in favor of the same canonical fee-oracle calls, covered by an unsigned-envelope regression test.
 - Fresh dependency resolution exposed an upstream token-lists beta package without dist files; pinned the usable beta.31 release. Updated TypeScript/Node types, narrowed unknown GraphQL errors, and handled Brotli compression failure explicitly.
 - No public-chain transactions or npm releases were performed.
+
+## Liquidity execution — Base Sepolia block 56910426
+
+Completed 345 exact-input measurements: **315 successful balance-checked swaps, 30 NO_ROUTE results, zero execution reverts/errors**. Each swap restores its snapshot. The full sweep restored the original fork block. Synthetic funding only changes local wallet balances, not the starting pool reserves. The separate 24-case integration matrix covers exact input/output through both direct and Universal Router execution.
+
+Largest measured inputs at or below each price-degradation threshold (rounded down below; exact below/above-threshold measurements are in [the evidence](audit/liquidity-base-sepolia.json)):
+
+| Direction / venue | Within 1% | Within 5% | Largest executed in grid |
+| --- | ---: | ---: | ---: |
+| USDC → USDT, Tokenize | 69.06 USDC | 367.18 USDC | 10,000 USDC |
+| USDT → USDC, Tokenize | 69.06 USDT | 370.70 USDT | 10,000 USDT |
+| USDC → WETH, Tokenize | 54.29 USDC | 370.70 USDC | 10,000 USDC |
+| USDT → WETH, Tokenize | 54.29 USDT | 370.70 USDT | 10,000 USDT |
+| WETH → USDC, Tokenize | 0.03337 WETH | 0.17470 WETH | 1 WETH |
+| WETH → USDT, Tokenize | 0.03337 WETH | 0.17470 WETH | 1 WETH |
+| USDC → USDT, ordinary | 281.05 USDC | 1,457.03 USDC | 10,000 USDC |
+| USDT → USDC, ordinary | 228.32 USDT | 1,184.57 USDT | 10,000 USDT |
+
+These are measurements, not an absolute AMM maximum or a guarantee for every smaller amount. Price degradation is versus the smallest quote in the same pair/mode, excludes gas, and is separate from the 1% execution-slippage limit. The grid stops after degradation reaches 20% or the configured input ceiling. For example, 1 WETH still executes, but its rate is about 22.8% worse than the smallest trade.
+
+Default-routing observations:
+
+- USDC → USDT used 100% Tokenize at the tested 1/10/100/1,000 USDC points and 5% at 10,000 USDC.
+- USDT → USDC used 0% Tokenize at the tested 1/10/100/1,000 USDT points. The ordinary market price was sufficiently better that forcing 5% exceeded the 50-bps total quote-loss budget. At 1,562.5 USDT and other tested larger points, a 5% Tokenize split passed. The exact policy transition was not separately bisected.
+- The WETH directions used 100% Tokenize in default routing throughout the tested grid.
+- Ordinary-only WETH routes were absent for these configured Aave USDC/USDT addresses. The discovered ordinary WETH pools instead use Circle USDC (0x036CbD53842c5426634e7929541eC2318f3dCF7e). This is not a claim that Base Sepolia has no ordinary WETH liquidity.
+- Ordinary stablecoin prices were not 1:1: the smallest quotes were about 0.809 USDT per USDC and 1.235 USDC per USDT. An impact bound relative to those quotes is not a dollar-parity guarantee.
+
+The scope is the configured V4 catalog, at most two AMM hops and two split legs. A read-only comparison at public block 56973957 found all ten discovered pools' liquidity and sqrt prices unchanged; ERC4626 rates can still accrue interest. Raw measurements remain in generated `.reports/liquidity.json`; the committed evidence records their hash, token/pool identities, counts, and exact measured bounds. Reproduce on a fresh fork at the recorded block with `CHECK_REFINE=true npm run check:liquidity`.
