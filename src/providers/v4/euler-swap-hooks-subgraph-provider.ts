@@ -146,6 +146,7 @@ export class EulerSwapHooksSubgraphProvider implements ISubgraphProvider {
           if (
             this.rollback &&
             blockNumber &&
+            err instanceof Error &&
             _.includes(err.message, 'indexed up to')
           ) {
             metric.putMetric(

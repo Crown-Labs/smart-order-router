@@ -16,3 +16,5 @@ CLAUDE.md
 .DS_Store
 
 .packages/
+
+.reports/

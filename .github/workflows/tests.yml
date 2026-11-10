@@ -29,6 +29,8 @@ jobs:
         working-directory: sdks
       - run: npm ci --ignore-scripts
         working-directory: smart-order-router
+      - run: npm run check:abis && npm audit --audit-level=moderate
+        working-directory: smart-order-router
       - run: npm run build && npm run typecheck:cli
         working-directory: smart-order-router
       - run: npm test -- --maxWorkers=2

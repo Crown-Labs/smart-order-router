@@ -102,7 +102,7 @@ To exercise a forced Tokenize split even when the testnet's ordinary pool price 
 CHECK_INPUT=USDT CHECK_MAX_QUOTE_LOSS_BPS=10000 CHECK_REQUIRE_TOKENIZE=true npm run check:fork
 ```
 
-Offline unit tests cover the price-loss cap and fallback behavior separately. Live upstream integration suites are under `test/integ` and require their corresponding RPCs; they are not part of `npm test`.
+Offline unit tests cover the price-loss cap and fallback behavior separately. The old mainnet Hardhat route suite and Oclif CLI were removed; the remaining remote provider tests under `test/integ/providers` require their corresponding RPCs and are not part of `npm test`. Kittycorn execution is covered by the local fork check above.
 
 ## Publish and deploy
 
@@ -115,3 +115,23 @@ npm run npm:publish
 Alternatively run **Release Kittycorn router** manually in GitHub Actions with `NPM_TOKEN` in the `npm-release` environment. Neither normal pushes nor `pack:release` publish anything.
 
 The SOR is an npm library: no smart contract is deployed from this repository. Deploy the new KittycornUniversalRouter using `make deploy chain=base-sepolia broadcast=true wallet=deployer` in `universal-router`, verify it with that repository's `make deploy-check`, and configure its address in the application. Existing Kittycorn Bank, Tokenize contracts, and LPs are reused.
+
+## Dependency security
+
+Ethers v5 currently pins a vulnerable WebSocket dependency. Applications consuming these packages must put the following override in their **root** package.json (dependency-package overrides are ignored by npm):
+
+```json
+{ "overrides": { "ws": "8.21.0" } }
+```
+
+Run `npm install` and `npm audit` after adding it. This repository already applies the override. A clean consumer install was checked with the same setting. It must remain until upstream Ethers v5 updates its pin or the integration migrates to a compatible replacement.
+
+A Low advisory remains in Ethers v5's transitive `elliptic` dependency ([GHSA-848j-6mx2-7j84](https://github.com/advisories/GHSA-848j-6mx2-7j84)); upstream reports no patched version. Our production code builds quotes/calldata and uses external RPC signers; it does not generate ECDSA signatures from user private keys. This is a scope assessment, not a fix or a zero-vulnerability claim. Do not use Ethers v5 local-wallet signing as a workaround for deployment keystores.
+
+## Maintenance scope
+
+Runtime dependencies no longer install Solidity compiler/Hardhat trees for ABI imports. Eight source ABI snapshots in `abi/` have pinned provenance and checksums in `scripts/abi-sources.json`. Run `npm run check:abis` locally and `npm run check:abis -- --verify-upstream` when updating them. OP Stack fee estimation calls the canonical GasPriceOracle directly with the same unsigned transaction envelope, avoiding the unused Optimism bridge SDK.
+
+`npm run check:liquidity` sweeps exact-input sizes for each token direction on the dedicated local Anvil fork. It compares default routing, Tokenize-only and ordinary-only pools, executes each quote with 1% slippage, then restores the same state. Local faucet/wrapped-ETH funding removes wallet balance as the limiting factor. `.reports/liquidity.json` records the block, amounts, venue share, price degradation, and execution results. Grid upper bounds are not claims of an absolute swap maximum.
+
+Jest also retains the Low development-only `deepmerge` advisory ([GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)), with no patched release. It merges trusted local test configuration, not swap input. CI fails for Moderate or higher advisories; Low exceptions remain visible in full audit output.

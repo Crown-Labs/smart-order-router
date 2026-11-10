@@ -1,0 +1,82 @@
+[
+  {
+    "package": "@uniswap/v2-core",
+    "version": "1.0.1",
+    "artifact": "build/IUniswapV2Pair.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/v2/IUniswapV2Pair.json",
+    "sha256": "ec2e79cd5d17b50eb3dac50f314033448d6485efc4b586aacb74dc908490cd77"
+  },
+  {
+    "package": "@uniswap/v3-core",
+    "version": "1.0.1",
+    "artifact": "artifacts/contracts/interfaces/pool/IUniswapV3PoolState.sol/IUniswapV3PoolState.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/v3/IUniswapV3PoolState.json",
+    "sha256": "4aec6388dfc81e913dd208fd030595d2b336f4b055d841e68280488f9fb3ce59"
+  },
+  {
+    "package": "@uniswap/v3-periphery",
+    "version": "1.4.4",
+    "artifact": "artifacts/contracts/lens/UniswapInterfaceMulticall.sol/UniswapInterfaceMulticall.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/v3/UniswapInterfaceMulticall.json",
+    "sha256": "00d12bb07f85265cabd8e463e50d91a6862a20a4f404fea90e82fb3df89e4fb8"
+  },
+  {
+    "package": "@uniswap/v3-periphery",
+    "version": "1.4.4",
+    "artifact": "artifacts/contracts/interfaces/IERC20Metadata.sol/IERC20Metadata.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/v3/IERC20Metadata.json",
+    "sha256": "38fd52ac77c1b7e5d1691ce528bf930cd2c5fd64d5be490b6ea7cf03c9e33e57"
+  },
+  {
+    "package": "@uniswap/v3-periphery",
+    "version": "1.4.4",
+    "artifact": "artifacts/contracts/interfaces/IQuoterV2.sol/IQuoterV2.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/v3/IQuoterV2.json",
+    "sha256": "a417bd659abd105f9f4f5e2721425b233bdec1a0e957cb3890f373ebaa3e7177"
+  },
+  {
+    "package": "@uniswap/swap-router-contracts",
+    "version": "1.3.1",
+    "artifact": "artifacts/contracts/SwapRouter02.sol/SwapRouter02.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/other/SwapRouter02.json",
+    "sha256": "009351db05d8ddd37b9983d068febc11522bcdf687e8c64e33a860402371950d"
+  },
+  {
+    "package": "@uniswap/swap-router-contracts",
+    "version": "1.3.1",
+    "artifact": "artifacts/contracts/interfaces/IMixedRouteQuoterV1.sol/IMixedRouteQuoterV1.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/other/IMixedRouteQuoterV1.json",
+    "sha256": "b967505e7d6d5b53eb935478fc5f8416a022f5cb37afb38196627dd83a104028"
+  },
+  {
+    "package": "@uniswap/swap-router-contracts",
+    "version": "1.3.1",
+    "artifact": "artifacts/contracts/interfaces/ITokenValidator.sol/ITokenValidator.json",
+    "fields": [
+      "abi"
+    ],
+    "output": "abi/other/ITokenValidator.json",
+    "sha256": "09e76064f8c4764b49e8ed5430ddef5a85ea6b0fdd796ace82e50efe66c75b7b"
+  }
+]

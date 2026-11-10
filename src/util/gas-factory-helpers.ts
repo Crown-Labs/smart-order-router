@@ -1,6 +1,6 @@
-import { estimateL1Gas, estimateL1GasCost } from '@eth-optimism/sdk';
 import { BigNumber } from '@ethersproject/bignumber';
-import { BaseProvider, TransactionRequest } from '@ethersproject/providers';
+import { BaseProvider } from '@ethersproject/providers';
+import { Contract, utils } from 'ethers';
 import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Percent, Token, TradeType } from '@kittycorn-labs/sdk-core';
 import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
@@ -193,6 +193,7 @@ export function getArbitrumBytes(data: string): BigNumber {
   // https://github.com/foliojs/brotli.js/issues/38
   // There are other brotli libraries that do support it, but require async
   // We workaround by using Brotli 1 with a 20% bump in size
+  if (!compressed) throw new Error('Brotli compression failed');
   return BigNumber.from(compressed.length).mul(120).div(100);
 }
 
@@ -215,14 +216,25 @@ export async function calculateOptimismToL1FeeFromCalldata(
   chainId: ChainId,
   provider: BaseProvider
 ): Promise<[BigNumber, BigNumber]> {
-  const tx: TransactionRequest = {
+  // The OP Stack predeploy accepts the unsigned serialized transaction. Keep the
+  // SDK's conservative placeholder nonce; this estimates calldata cost, not a signature.
+  const transaction = utils.serializeTransaction({
     data: calldata,
-    chainId: chainId,
-    type: 2, // sign the transaction as EIP-1559, otherwise it will fail at maxFeePerGas
-  };
+    chainId,
+    type: 2,
+    nonce: 0xffffffff,
+  });
+  const oracle = new Contract(
+    '0x420000000000000000000000000000000000000F',
+    [
+      'function getL1GasUsed(bytes) view returns (uint256)',
+      'function getL1Fee(bytes) view returns (uint256)',
+    ],
+    provider
+  );
   const [l1GasUsed, l1GasCost] = await Promise.all([
-    estimateL1Gas(provider, tx),
-    estimateL1GasCost(provider, tx),
+    oracle.getL1GasUsed(transaction) as Promise<BigNumber>,
+    oracle.getL1Fee(transaction) as Promise<BigNumber>,
   ]);
   return [l1GasUsed, l1GasCost];
 }

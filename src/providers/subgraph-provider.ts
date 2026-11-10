@@ -326,6 +326,7 @@ export abstract class SubgraphProvider<
           if (
             this.rollback &&
             blockNumber &&
+            err instanceof Error &&
             _.includes(err.message, 'indexed up to')
           ) {
             metric.putMetric(
