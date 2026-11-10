@@ -16,7 +16,7 @@
     "compile-v2-types": "typechain --target ethers-v5 --out-dir src/types/v2 'abi/v2/*.json'",
     "compile-router": "typechain --target ethers-v5 --out-dir src/types/other 'abi/other/*.json'",
     "compile-external-types": "typechain --target ethers-v5 --out-dir src/types/other 'src/abis/**/*.json'",
-    "build": "npm run generate-types && run-p build:main build:module",
+    "build": "npm run clean && npm run generate-types && run-p build:main build:module",
     "build:main": "tsc -p tsconfig.json",
     "build:module": "tsc -p tsconfig.module.json",
     "fix": "run-s fix:*",
@@ -32,7 +32,8 @@
     "check:fork": "ts-node cli/check-kittycorn.ts",
     "pack:release": "node scripts/pack.js",
     "check:abis": "node scripts/abis.js",
-    "check:liquidity": "ts-node cli/check-liquidity.ts"
+    "check:liquidity": "ts-node cli/check-liquidity.ts",
+    "clean": "node -e \"for (const dir of ['build', 'src/types']) require('fs').rmSync(dir, {recursive:true,force:true})\""
   },
   "engines": {
     "node": ">=22"
@@ -112,7 +113,9 @@
     "singleQuote": true
   },
   "overrides": {
-    "ws": "8.21.0",
-    "@tootallnate/once": "2.0.1"
+    "@tootallnate/once": "2.0.1",
+    "@ethersproject/providers": {
+      "ws": "8.21.0"
+    }
   }
 }

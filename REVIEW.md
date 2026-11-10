@@ -28,7 +28,7 @@
 - Testnet ordinary pool prices can differ substantially from Tokenize pools. The default 0.5% total-quote loss budget can skip the 5% preference. It can be configured independently; test-only overrides do not change deployment defaults.
 - Offline checks do not execute the five upstream Universal Router mainnet fork suites or SOR's remote multi-chain integration suites. Standard upstream compatibility is covered by available unit tests, not a live execution claim for every chain.
 - Dependency audit after pruning/reinstall: Universal Router 0 findings; SDK Bun audit 1 Low advisory; SOR full npm audit 0 Critical/High/Moderate and 26 Low impacted package entries (19 production entries). These SOR entries cascade from two distinct unpatched advisories: elliptic (runtime Ethers v5 dependency) and deepmerge (Jest development configuration). We did not downgrade or hide them to claim a clean audit. See the linked advisories in README.md.
-- The ws patch is an application-root override. It is not inherited from a published SDK/SOR package. A clean consumer install with the documented override has 0 Critical/High/Moderate and 19 Low cascading elliptic entries. Consumers must keep that override until upstream dependency pins change.
+- The ws patch is an application-root override. It is not inherited from a published SDK/SOR package. A clean consumer install with the documented override has 0 Critical/High/Moderate and 20 Low cascading elliptic entries when all six SDKs and SOR are installed (19 for the SDK-only consumer). Consumers must keep that override until upstream dependency pins change.
 - `.vscode/settings.json` edits that existed before this work are preserved locally and excluded from commits.
 
 ## Lean dependency review

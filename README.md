@@ -26,7 +26,7 @@ npm test -- --maxWorkers=2
 npm run pack:release
 ```
 
-The build regenerates TypeChain files before compiling; it does not depend on old generated files in your checkout. `pack:release` writes `.packages/kittycorn-labs-smart-order-router-5.0.0.tgz`, replacing local SDK paths with exact npm versions in a temporary manifest. It does not publish or alter source dependencies. CI checks out the pinned SDK commit, builds its packages, and follows this same workflow.
+The build removes old `build` and generated `src/types` output, then regenerates TypeChain files before compiling; it does not depend on old generated files in your checkout. `pack:release` writes `.packages/kittycorn-labs-smart-order-router-5.0.0.tgz`, replacing local SDK paths with exact npm versions in a temporary manifest. It does not publish or alter source dependencies. CI checks out the pinned SDK commit, builds its packages, and follows this same workflow.
 
 After changing SDK code, build/pack it, install the new tarballs explicitly, and commit the updated `.sdk-ref` and lockfile:
 
@@ -112,6 +112,41 @@ Publish the six SDK packages first (`bun run g:release` in `sdks`). Then, after 
 npm run npm:publish
 ```
 
+For a manual release from the three sibling checkouts, run each line separately (Node.js 22+, Bun 1.3.10 and Foundry 1.4.4 are required):
+
+```sh
+cd /Users/0xmaxma/Desktop/crown-labs/sdks
+bun install --frozen-lockfile --ignore-scripts
+bun run g:abis
+bun run g:build
+bun run g:test
+bun run g:pack
+npm login
+bun run g:release
+cd /Users/0xmaxma/Desktop/crown-labs/smart-order-router
+npm ci --ignore-scripts
+npm run build
+npm run typecheck:cli
+npm test -- --maxWorkers=2
+npm run pack:release
+npm run npm:publish
+cd /Users/0xmaxma/Desktop/crown-labs/universal-router
+npm ci --ignore-scripts
+git submodule update --init --recursive
+make build
+make test
+```
+
+Set `RPC_BASE_SEPOLIA_FORK_URL` to your RPC in that shell. If the `deployer` keystore does not exist, create it once with `cast wallet import deployer --interactive`; enter the key at the hidden prompt, never in a command or this repository. Then:
+
+```sh
+make deploy chain=base-sepolia sender=0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff
+make deploy chain=base-sepolia broadcast=true wallet=deployer
+make deploy-check chain=base-sepolia router=<new-universal-router-address>
+```
+
+Replace the final placeholder with the printed deployed address. SDK versions are currently 2.0.0 and SOR is 5.0.0; npm versions are immutable, so use a new version for a subsequent release. The publishing commands above publish real packages, while only the deployment command with `broadcast=true` sends a public transaction.
+
 Alternatively run **Release Kittycorn router** manually in GitHub Actions with `NPM_TOKEN` in the `npm-release` environment. Neither normal pushes nor `pack:release` publish anything.
 
 The SOR is an npm library: no smart contract is deployed from this repository. Deploy the new KittycornUniversalRouter using `make deploy chain=base-sepolia broadcast=true wallet=deployer` in `universal-router`, verify it with that repository's `make deploy-check`, and configure its address in the application. Existing Kittycorn Bank, Tokenize contracts, and LPs are reused.
@@ -121,7 +156,7 @@ The SOR is an npm library: no smart contract is deployed from this repository. D
 Ethers v5 currently pins a vulnerable WebSocket dependency. Applications consuming these packages must put the following override in their **root** package.json (dependency-package overrides are ignored by npm):
 
 ```json
-{ "overrides": { "ws": "8.21.0" } }
+{ "overrides": { "@ethersproject/providers": { "ws": "8.21.0" } } }
 ```
 
 Run `npm install` and `npm audit` after adding it. This repository already applies the override. A clean consumer install was checked with the same setting. It must remain until upstream Ethers v5 updates its pin or the integration migrates to a compatible replacement.
@@ -132,6 +167,6 @@ A Low advisory remains in Ethers v5's transitive `elliptic` dependency ([GHSA-84
 
 Runtime dependencies no longer install Solidity compiler/Hardhat trees for ABI imports. Eight source ABI snapshots in `abi/` have pinned provenance and checksums in `scripts/abi-sources.json`. Run `npm run check:abis` locally and `npm run check:abis -- --verify-upstream` when updating them. OP Stack fee estimation calls the canonical GasPriceOracle directly with the same unsigned transaction envelope, avoiding the unused Optimism bridge SDK.
 
-`npm run check:liquidity` sweeps exact-input sizes for each token direction on the dedicated local Anvil fork. It compares default routing, Tokenize-only and ordinary-only pools, executes each quote with 1% slippage, then restores the same state. Local faucet/wrapped-ETH funding removes wallet balance as the limiting factor. `.reports/liquidity.json` records the block, amounts, venue share, price degradation, and execution results. Grid upper bounds are not claims of an absolute swap maximum.
+`npm run check:liquidity` sweeps exact-input sizes for each token direction on the dedicated local Anvil fork. It compares default routing, Tokenize-only and ordinary-only pools, executes each quote with 1% slippage, then restores the same state. Local faucet/wrapped-ETH funding removes wallet balance as the limiting factor. `.reports/liquidity.json` records the block, amounts, venue share, price degradation, and execution results. Grid upper bounds are not claims of an absolute swap maximum. Add `CHECK_REFINE=true` to execute additional amounts around the 1% and 5% price-degradation boundaries; these percentages compare against the smallest quote in the same mode, not oracle parity or the transaction slippage limit. `CHECK_INPUT=USDC CHECK_OUTPUT=USDT` limits a run to one direction. Quotes use the canonical fork block; synthetic local funding never changes pool reserves. Run on a fresh dedicated node, with no other process modifying its state.
 
 Jest also retains the Low development-only `deepmerge` advisory ([GHSA-gcqx-w48m-w2h4](https://github.com/advisories/GHSA-gcqx-w48m-w2h4)), with no patched release. It merges trusted local test configuration, not swap input. CI fails for Moderate or higher advisories; Low exceptions remain visible in full audit output.
