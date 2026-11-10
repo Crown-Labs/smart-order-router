@@ -1,23 +1,7 @@
 import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
-import {
-  TAAVE_ARBITRUM_ONE,
-  TAAVE_SEPOLIA,
-  TLINK_ARBITRUM_ONE,
-  TLINK_SEPOLIA,
-  TUSDC_ARBITRUM_ONE,
-  TUSDC_MAINNET,
-  TUSDC_SEPOLIA,
-  TUSDT_ARBITRUM_ONE,
-  TUSDT_MAINNET,
-  TUSDT_SEPOLIA,
-  TWBTC_ARBITRUM_ONE,
-  TWBTC_MAINNET,
-  TWBTC_SEPOLIA,
-  TWETH_ARBITRUM_ONE,
-  TWETH_MAINNET,
-  TWETH_SEPOLIA,
-} from '@kittycorn-labs/v4-sdk';
+import _ from 'lodash';
+import { KITTYCORN_BASE_SEPOLIA } from '../util/tokenize';
 
 import { SubgraphPool } from '../routers/alpha-router/functions/get-candidate-pools';
 import { nativeOnChain, WRAPPED_NATIVE_CURRENCY } from '../util';
@@ -38,6 +22,7 @@ import {
   DAI_MAINNET,
   DAI_MOONBEAM,
   DAI_OPTIMISM,
+  DAI_UNICHAIN,
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
@@ -48,13 +33,16 @@ import {
   USDC_BASE_SEPOLIA,
   USDC_BNB,
   USDC_MAINNET,
+  USDC_MONAD,
   USDC_MOONBEAM,
   USDC_NATIVE_ARBITRUM,
   USDC_OPTIMISM,
   USDC_POLYGON,
   USDC_SONEIUM,
+  USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
+  USDC_XLAYER,
   USDC_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
@@ -65,7 +53,6 @@ import {
   WBTC_MAINNET,
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
-  WBTC_SEPOLIA,
   WBTC_WORLDCHAIN,
   WETH_POLYGON,
   WLD_WORLDCHAIN,
@@ -75,7 +62,7 @@ import {
 import { V3SubgraphPool } from './v3/subgraph-provider';
 
 type ChainTokenList = {
-  readonly [chainId in ChainId]: Currency[];
+  readonly [chainId in ChainId]?: Currency[];
 };
 
 export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
@@ -87,22 +74,11 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDT_MAINNET,
     WBTC_MAINNET,
     WSTETH_MAINNET,
-    TUSDC_MAINNET,
-    TUSDT_MAINNET,
-    TWETH_MAINNET,
-    TWBTC_MAINNET,
   ],
   [ChainId.GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.GOERLI]!],
   [ChainId.SEPOLIA]: [
     nativeOnChain(ChainId.SEPOLIA),
     WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!,
-    TUSDC_SEPOLIA,
-    TUSDT_SEPOLIA,
-    TWBTC_SEPOLIA,
-    TWETH_SEPOLIA,
-    TLINK_SEPOLIA,
-    TAAVE_SEPOLIA,
-    WBTC_SEPOLIA,
   ],
   //v2 not deployed on [arbitrum, polygon, celo, gnosis, moonbeam, bnb, avalanche] and their testnets
   [ChainId.OPTIMISM]: [
@@ -123,12 +99,6 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     USDC_NATIVE_ARBITRUM,
     USDT_ARBITRUM,
     ARB_ARBITRUM,
-    TUSDC_ARBITRUM_ONE,
-    TUSDT_ARBITRUM_ONE,
-    TWETH_ARBITRUM_ONE,
-    TWBTC_ARBITRUM_ONE,
-    TLINK_ARBITRUM_ONE,
-    TAAVE_ARBITRUM_ONE,
   ],
   [ChainId.ARBITRUM_GOERLI]: [],
   [ChainId.ARBITRUM_SEPOLIA]: [],
@@ -145,14 +115,14 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
   [ChainId.CELO_ALFAJORES]: [],
   [ChainId.GNOSIS]: [],
   [ChainId.MOONBEAM]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],
+    WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM]!,
     DAI_MOONBEAM,
     USDC_MOONBEAM,
     WBTC_MOONBEAM,
   ],
   [ChainId.BNB]: [
     nativeOnChain(ChainId.BNB),
-    WRAPPED_NATIVE_CURRENCY[ChainId.BNB],
+    WRAPPED_NATIVE_CURRENCY[ChainId.BNB]!,
     BUSD_BNB,
     DAI_BNB,
     USDC_BNB,
@@ -161,14 +131,14 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     ETH_BNB,
   ],
   [ChainId.AVALANCHE]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE],
+    WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!,
     USDC_AVAX,
     DAI_AVAX,
   ],
   [ChainId.BASE_GOERLI]: [],
   [ChainId.BASE]: [
     nativeOnChain(ChainId.BASE),
-    WRAPPED_NATIVE_CURRENCY[ChainId.BASE],
+    WRAPPED_NATIVE_CURRENCY[ChainId.BASE]!,
     USDC_BASE,
   ],
   [ChainId.ZORA]: [
@@ -199,11 +169,20 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN_SEPOLIA]!,
     USDC_UNICHAIN_SEPOLIA,
   ],
-  [ChainId.UNICHAIN]: [],
+  [ChainId.UNICHAIN]: [
+    nativeOnChain(ChainId.UNICHAIN),
+    WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
+    DAI_UNICHAIN,
+    USDC_UNICHAIN,
+  ],
   [ChainId.BASE_SEPOLIA]: [
     nativeOnChain(ChainId.BASE_SEPOLIA),
     WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
     USDC_BASE_SEPOLIA,
+    ..._.flatMap(KITTYCORN_BASE_SEPOLIA.tokens, (t) => [
+      t.underlying,
+      t.tokenize,
+    ]),
   ],
   [ChainId.MONAD_TESTNET]: [
     nativeOnChain(ChainId.MONAD_TESTNET),
@@ -214,6 +193,16 @@ export const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     nativeOnChain(ChainId.SONEIUM),
     WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!,
     USDC_SONEIUM,
+  ],
+  [ChainId.MONAD]: [
+    nativeOnChain(ChainId.MONAD),
+    WRAPPED_NATIVE_CURRENCY[ChainId.MONAD]!,
+    USDC_MONAD,
+  ],
+  [ChainId.XLAYER]: [
+    nativeOnChain(ChainId.XLAYER),
+    WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!,
+    USDC_XLAYER,
   ],
 };
 

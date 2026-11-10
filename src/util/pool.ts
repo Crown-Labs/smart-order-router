@@ -6,7 +6,7 @@ import { nativeOnChain } from './chains';
 
 const FAKE_TICK_SPACING = 0;
 
-export const V4_ETH_WETH_FAKE_POOL: { [chainId in ChainId]: V4Pool } = {
+export const V4_ETH_WETH_FAKE_POOL: { [chainId in ChainId]?: V4Pool } = {
   [ChainId.MAINNET]: new V4Pool(
     nativeOnChain(ChainId.MAINNET),
     nativeOnChain(ChainId.MAINNET).wrapped,
@@ -297,9 +297,29 @@ export const V4_ETH_WETH_FAKE_POOL: { [chainId in ChainId]: V4Pool } = {
     0,
     0
   ),
+  [ChainId.MONAD]: new V4Pool(
+    nativeOnChain(ChainId.MONAD),
+    nativeOnChain(ChainId.MONAD).wrapped,
+    0,
+    FAKE_TICK_SPACING,
+    ADDRESS_ZERO,
+    79228162514264337593543950336,
+    0,
+    0
+  ),
   [ChainId.SONEIUM]: new V4Pool(
     nativeOnChain(ChainId.SONEIUM),
     nativeOnChain(ChainId.SONEIUM).wrapped,
+    0,
+    FAKE_TICK_SPACING,
+    ADDRESS_ZERO,
+    79228162514264337593543950336,
+    0,
+    0
+  ),
+  [ChainId.XLAYER]: new V4Pool(
+    nativeOnChain(ChainId.XLAYER),
+    nativeOnChain(ChainId.XLAYER).wrapped,
     0,
     FAKE_TICK_SPACING,
     ADDRESS_ZERO,

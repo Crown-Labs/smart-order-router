@@ -227,7 +227,7 @@ describe('mixed route gas model tests', () => {
       mixedRouteGasModel: mixedGasModel,
       route: new MixedRoute(
         [USDC_WETH_MEDIUM, USDC_DAI],
-        WRAPPED_NATIVE_CURRENCY[1],
+        WRAPPED_NATIVE_CURRENCY[1]!,
         DAI_MAINNET
       ),
       quoteToken: DAI_MAINNET,
@@ -276,9 +276,9 @@ describe('mixed route gas model tests', () => {
       route: new MixedRoute(
         [USDC_DAI_MEDIUM, WETH_DAI],
         USDC_MAINNET,
-        WRAPPED_NATIVE_CURRENCY[1]
+        WRAPPED_NATIVE_CURRENCY[1]!
       ),
-      quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+      quoteToken: WRAPPED_NATIVE_CURRENCY[1]!,
       initializedTicksCrossedList: [1],
     });
 

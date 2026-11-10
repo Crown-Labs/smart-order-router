@@ -1,13 +1,14 @@
 import { ADDRESS_ZERO } from '@kittycorn-labs/router-sdk';
 import {
   ChainId,
-  // eslint-disable-next-line sort-imports
   CHAIN_TO_ADDRESSES_MAP,
   Currency,
   SWAP_ROUTER_02_ADDRESSES as SWAP_ROUTER_02_ADDRESSES_HELPER,
   Token,
+  WETH9 as WETH9_HELPER,
 } from '@kittycorn-labs/sdk-core';
 import { FACTORY_ADDRESS } from '@kittycorn-labs/v3-sdk';
+import { KITTYCORN_BASE_SEPOLIA } from './tokenize';
 
 import { NETWORKS_WITH_SAME_UNISWAP_ADDRESSES } from './chains';
 
@@ -50,6 +51,7 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].v3CoreFactoryAddress,
   [ChainId.MONAD_TESTNET]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD_TESTNET].v3CoreFactoryAddress,
+  [ChainId.MONAD]: CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD].v3CoreFactoryAddress,
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].v3CoreFactoryAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
@@ -57,6 +59,7 @@ export const V3_CORE_FACTORY_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v3CoreFactoryAddress,
   [ChainId.SONEIUM]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v3CoreFactoryAddress,
+  [ChainId.XLAYER]: CHAIN_TO_ADDRESSES_MAP[ChainId.XLAYER].v3CoreFactoryAddress,
 };
 
 export const QUOTER_V2_ADDRESSES: AddressMap = {
@@ -87,11 +90,13 @@ export const QUOTER_V2_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].quoterAddress,
   [ChainId.MONAD_TESTNET]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD_TESTNET].quoterAddress,
+  [ChainId.MONAD]: CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD].quoterAddress,
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].quoterAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
   [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].quoterAddress,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].quoterAddress,
+  [ChainId.XLAYER]: CHAIN_TO_ADDRESSES_MAP[ChainId.XLAYER].quoterAddress,
 };
 
 export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
@@ -114,17 +119,21 @@ export const NEW_QUOTER_V2_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].quoterAddress, // TODO: deploy view-only-quoter to UNICHAIN
   [ChainId.MONAD_TESTNET]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD_TESTNET].quoterAddress, // TODO: deploy view-only-quoter to monad testnet
+  [ChainId.MONAD]: CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD].quoterAddress, // TODO: deploy view-only-quoter to monad
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].quoterAddress,
   [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].quoterAddress, // TODO: deploy view-only-quoter to unichain
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].quoterAddress,
+  [ChainId.XLAYER]: CHAIN_TO_ADDRESSES_MAP[ChainId.XLAYER].quoterAddress,
 };
 
 export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0xf3a39c86dbd13c45365e57fb90fe413371f65af8'),
+  [ChainId.BASE_SEPOLIA]: KITTYCORN_BASE_SEPOLIA.quoter,
+  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
   [ChainId.ARBITRUM_ONE]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_ONE].v4QuoterAddress,
-  [ChainId.BASE]: CHAIN_TO_ADDRESSES_MAP[ChainId.BASE].v4QuoterAddress,
+  [ChainId.BASE]: '0xe1a6c5803e3c44368b171bd680c7d32dfc92ca47',
   [ChainId.POLYGON]: CHAIN_TO_ADDRESSES_MAP[ChainId.POLYGON].v4QuoterAddress,
   [ChainId.BNB]: CHAIN_TO_ADDRESSES_MAP[ChainId.BNB].v4QuoterAddress,
   [ChainId.AVALANCHE]:
@@ -137,10 +146,11 @@ export const PROTOCOL_V4_QUOTER_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].v4QuoterAddress,
   [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].v4QuoterAddress,
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v4QuoterAddress,
-  [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v4QuoterAddress,
-  // Kittycorn: Using KittycornV4Quoter
   [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4QuoterAddress,
-  [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4QuoterAddress,
+  [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v4QuoterAddress,
+  [ChainId.MONAD]: CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD].v4QuoterAddress,
+  [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].v4QuoterAddress,
+  [ChainId.XLAYER]: CHAIN_TO_ADDRESSES_MAP[ChainId.XLAYER].v4QuoterAddress,
 };
 
 export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
@@ -148,23 +158,25 @@ export const MIXED_ROUTE_QUOTER_V1_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].mixedRouteQuoterV1Address,
   [ChainId.GOERLI]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.GOERLI].mixedRouteQuoterV1Address,
-  [ChainId.BASE]: '0xc7A3b85D43fF66AD98A895dE0EaE4b9e24C932D7',
+  [ChainId.BASE]: '0xe544efae946f0008ae9a8d64493efa7886b73776',
   [ChainId.UNICHAIN]: '0x48C0648E357639B446C99a6c7316A3eaFEaB35aE',
-  [ChainId.ARBITRUM_ONE]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
-  [ChainId.POLYGON]: '0x9d0f15f2cf58655fddcd1ee6129c547fdaed01b1',
-  [ChainId.OPTIMISM]: '0xf0c802DCb0cF1C4f7B953756b49D940EED190221',
-  [ChainId.AVALANCHE]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
-  [ChainId.BNB]: '0xf0c802DCb0cF1C4f7B953756b49D940EED190221',
-  [ChainId.WORLDCHAIN]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
-  [ChainId.ZORA]: '0x5f739c790a48E97eec0efb81bab5D152c0A0ecA0',
+  [ChainId.ARBITRUM_ONE]: '0x003aa18c6E682dB80Cf4aa17261CcbFfd28690CE',
+  [ChainId.POLYGON]: '0x58ead433EA99708604C4dD7c9b7E80C70976E202',
+  [ChainId.OPTIMISM]: '0x204faca1764b154221e35c0d20abb3c525710498',
+  [ChainId.AVALANCHE]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
+  [ChainId.BNB]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
+  [ChainId.WORLDCHAIN]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
+  [ChainId.ZORA]: '0x204FAca1764B154221e35c0d20aBb3c525710498',
   [ChainId.SONEIUM]: '0x42c14CE921e85bf14467A82fAf8182546cf7c604',
+  [ChainId.XLAYER]: '0x2d01411773c8c24805306e89a41f7855c3c4fe65',
+  [ChainId.MONAD]: '0xdcd9f4e8972f619b325b0c3109412dfc4d184734',
 };
 
 export const MIXED_ROUTE_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].mixedRouteQuoterV2Address,
   [ChainId.MAINNET]: '0xE63C5F5005909E96b5aA9CE10744CCE70eC16CC3',
-  [ChainId.BASE]: '0xc7A3b85D43fF66AD98A895dE0EaE4b9e24C932D7',
+  [ChainId.BASE]: '0x253ee8eb6551b47181b613461c15d699fe4a2e39',
   [ChainId.UNICHAIN]: '0x48C0648E357639B446C99a6c7316A3eaFEaB35aE',
   [ChainId.ARBITRUM_ONE]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
   [ChainId.POLYGON]: '0x9d0f15f2cf58655fddcd1ee6129c547fdaed01b1',
@@ -174,6 +186,8 @@ export const MIXED_ROUTE_QUOTER_V2_ADDRESSES: AddressMap = {
   [ChainId.WORLDCHAIN]: '0x9D0F15f2cf58655fDDcD1EE6129C547fDaeD01b1',
   [ChainId.ZORA]: '0x5f739c790a48E97eec0efb81bab5D152c0A0ecA0',
   [ChainId.SONEIUM]: '0x42c14CE921e85bf14467A82fAf8182546cf7c604',
+  [ChainId.XLAYER]: '0x2d01411773c8c24805306e89a41f7855c3c4fe65',
+  [ChainId.MONAD]: '0xdcd9f4e8972f619b325b0c3109412dfc4d184734',
 };
 
 export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
@@ -205,11 +219,13 @@ export const UNISWAP_MULTICALL_ADDRESSES: AddressMap = {
     CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN_SEPOLIA].multicallAddress,
   [ChainId.MONAD_TESTNET]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD_TESTNET].multicallAddress,
+  [ChainId.MONAD]: CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD].multicallAddress,
   [ChainId.BASE_SEPOLIA]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].multicallAddress,
   // TODO: Gnosis + Moonbeam contracts to be deployed
   [ChainId.UNICHAIN]: CHAIN_TO_ADDRESSES_MAP[ChainId.UNICHAIN].multicallAddress,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].multicallAddress,
+  [ChainId.XLAYER]: CHAIN_TO_ADDRESSES_MAP[ChainId.XLAYER].multicallAddress,
 };
 
 export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
@@ -221,6 +237,8 @@ export const SWAP_ROUTER_02_ADDRESSES = (chainId: number): string => {
 
 export const STATE_VIEW_ADDRESSES: AddressMap = {
   ...constructSameAddressMap('0x1F98415757620B543A52E61c46B32eB19261F984'),
+  [ChainId.BASE_SEPOLIA]:
+    CHAIN_TO_ADDRESSES_MAP[ChainId.BASE_SEPOLIA].v4StateView,
   [ChainId.SEPOLIA]: CHAIN_TO_ADDRESSES_MAP[ChainId.SEPOLIA].v4StateView,
   [ChainId.ARBITRUM_ONE]:
     CHAIN_TO_ADDRESSES_MAP[ChainId.ARBITRUM_ONE].v4StateView,
@@ -237,6 +255,9 @@ export const STATE_VIEW_ADDRESSES: AddressMap = {
   [ChainId.BLAST]: CHAIN_TO_ADDRESSES_MAP[ChainId.BLAST].v4StateView,
   [ChainId.MAINNET]: CHAIN_TO_ADDRESSES_MAP[ChainId.MAINNET].v4StateView,
   [ChainId.SONEIUM]: CHAIN_TO_ADDRESSES_MAP[ChainId.SONEIUM].v4StateView,
+  [ChainId.MONAD]: CHAIN_TO_ADDRESSES_MAP[ChainId.MONAD].v4StateView,
+  [ChainId.CELO]: CHAIN_TO_ADDRESSES_MAP[ChainId.CELO].v4StateView,
+  [ChainId.XLAYER]: CHAIN_TO_ADDRESSES_MAP[ChainId.XLAYER].v4StateView,
 };
 
 export const OVM_GASPRICE_ADDRESS =
@@ -278,40 +299,15 @@ export const WETH9: {
     | ChainId.BNB
     | ChainId.AVALANCHE
     | ChainId.MONAD_TESTNET
+    | ChainId.MONAD
     // TODO: remove ROOTSTOCK once we support both at the routing level
     | ChainId.ROOTSTOCK
-    // TODO: remove UNICHAIN once we support both at the routing level
-    // | ChainId.UNICHAIN
-  >]: Token;
+  >]?: Token;
 } = {
-  [ChainId.MAINNET]: new Token(
-    ChainId.MAINNET,
-    '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.GOERLI]: new Token(
-    ChainId.GOERLI,
-    '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.SEPOLIA]: new Token(
-    ChainId.SEPOLIA,
-    '0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.OPTIMISM]: new Token(
-    ChainId.OPTIMISM,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.MAINNET]: WETH9_HELPER[ChainId.MAINNET]!,
+  [ChainId.GOERLI]: WETH9_HELPER[ChainId.GOERLI]!,
+  [ChainId.SEPOLIA]: WETH9_HELPER[ChainId.SEPOLIA]!,
+  [ChainId.OPTIMISM]: WETH9_HELPER[ChainId.OPTIMISM]!,
   [ChainId.OPTIMISM_GOERLI]: new Token(
     ChainId.OPTIMISM_GOERLI,
     '0x4200000000000000000000000000000000000006',
@@ -319,20 +315,8 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.OPTIMISM_SEPOLIA]: new Token(
-    ChainId.OPTIMISM_SEPOLIA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ARBITRUM_ONE]: new Token(
-    ChainId.ARBITRUM_ONE,
-    '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.OPTIMISM_SEPOLIA]: WETH9_HELPER[ChainId.OPTIMISM_SEPOLIA]!,
+  [ChainId.ARBITRUM_ONE]: WETH9_HELPER[ChainId.ARBITRUM_ONE]!,
   [ChainId.ARBITRUM_GOERLI]: new Token(
     ChainId.ARBITRUM_GOERLI,
     '0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3',
@@ -340,13 +324,7 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.ARBITRUM_SEPOLIA]: new Token(
-    ChainId.ARBITRUM_SEPOLIA,
-    '0xc556bAe1e86B2aE9c22eA5E036b07E55E7596074',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.ARBITRUM_SEPOLIA]: WETH9_HELPER[ChainId.ARBITRUM_SEPOLIA]!,
   [ChainId.BASE_GOERLI]: new Token(
     ChainId.BASE_GOERLI,
     '0x4200000000000000000000000000000000000006',
@@ -354,27 +332,9 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.BASE]: new Token(
-    ChainId.BASE,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.BLAST]: new Token(
-    ChainId.BLAST,
-    '0x4300000000000000000000000000000000000004',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.ZORA]: new Token(
-    ChainId.ZORA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.BASE]: WETH9_HELPER[ChainId.BASE]!,
+  [ChainId.BLAST]: WETH9_HELPER[ChainId.BLAST]!,
+  [ChainId.ZORA]: WETH9_HELPER[ChainId.ZORA]!,
   [ChainId.ZORA_SEPOLIA]: new Token(
     ChainId.ZORA_SEPOLIA,
     '0x4200000000000000000000000000000000000006',
@@ -382,48 +342,13 @@ export const WETH9: {
     'WETH',
     'Wrapped Ether'
   ),
-  [ChainId.ZKSYNC]: new Token(
-    ChainId.ZKSYNC,
-    '0x5aea5775959fbc2557cc8789bc1bf90a239d9a91',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.WORLDCHAIN]: new Token(
-    ChainId.WORLDCHAIN,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.UNICHAIN_SEPOLIA]: new Token(
-    ChainId.UNICHAIN_SEPOLIA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.BASE_SEPOLIA]: new Token(
-    ChainId.BASE_SEPOLIA,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.UNICHAIN]: new Token(
-    ChainId.UNICHAIN,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
-  [ChainId.SONEIUM]: new Token(
-    ChainId.SONEIUM,
-    '0x4200000000000000000000000000000000000006',
-    18,
-    'WETH',
-    'Wrapped Ether'
-  ),
+  [ChainId.ZKSYNC]: WETH9_HELPER[ChainId.ZKSYNC]!,
+  [ChainId.WORLDCHAIN]: WETH9_HELPER[ChainId.WORLDCHAIN]!,
+  [ChainId.UNICHAIN_SEPOLIA]: WETH9_HELPER[ChainId.UNICHAIN_SEPOLIA]!,
+  [ChainId.BASE_SEPOLIA]: WETH9_HELPER[ChainId.BASE_SEPOLIA]!,
+  [ChainId.UNICHAIN]: WETH9_HELPER[ChainId.UNICHAIN]!,
+  [ChainId.SONEIUM]: WETH9_HELPER[ChainId.SONEIUM]!,
+  [ChainId.XLAYER]: WETH9_HELPER[ChainId.XLAYER]!,
 };
 
 export const BEACON_CHAIN_DEPOSIT_ADDRESS =

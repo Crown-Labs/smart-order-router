@@ -3,7 +3,7 @@ import { Protocol } from '@kittycorn-labs/router-sdk';
 import { Currency, Token, TradeType } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
-import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
+import { isTokenizeConversion, Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
 
 import { IV4PoolProvider } from '../../../providers';
@@ -347,7 +347,7 @@ export class V4RouteWithValidQuote implements IV4RouteWithValidQuote {
     }
 
     this.poolIdentifiers = _.map(
-      route.pools,
+      route.pools.filter((pool) => !isTokenizeConversion(pool)),
       (p) =>
         v4PoolProvider.getPoolId(
           p.token0,

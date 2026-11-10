@@ -1,6 +1,5 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { Protocol } from '@kittycorn-labs/router-sdk';
-import { TPool } from '@kittycorn-labs/router-sdk/dist/utils/TPool';
+import { Protocol, TPool } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, TradeType } from '@kittycorn-labs/sdk-core';
 import _ from 'lodash';
 

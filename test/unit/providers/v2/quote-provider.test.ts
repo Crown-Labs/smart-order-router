@@ -28,10 +28,10 @@ const inputBulletCurrencyAmount = CurrencyAmount.fromRawAmount(
 );
 const wethOriginalAmount = JSBI.BigInt(10);
 const wethCurrencyAmount = CurrencyAmount.fromRawAmount(
-  WETH9[ChainId.MAINNET],
+  WETH9[ChainId.MAINNET]!,
   JSBI.exponentiate(
     wethOriginalAmount,
-    JSBI.BigInt(WETH9[ChainId.MAINNET].decimals)
+    JSBI.BigInt(WETH9[ChainId.MAINNET]!.decimals)
   )
 );
 const stEthOriginalAmount = JSBI.BigInt(10);
@@ -59,7 +59,7 @@ const bulletReserve = CurrencyAmount.fromRawAmount(
   inputBulletCurrencyAmount.multiply(amountFactorForReserves).quotient
 );
 const WETHReserve = CurrencyAmount.fromRawAmount(
-  WETH9[ChainId.MAINNET],
+  WETH9[ChainId.MAINNET]!,
   wethCurrencyAmount.multiply(amountFactorForReserves).quotient
 );
 const bulletWETHPool = new Pair(bulletReserve, WETHReserve);

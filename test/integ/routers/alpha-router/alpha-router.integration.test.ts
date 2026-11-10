@@ -155,18 +155,20 @@ const GAS_ESTIMATE_DEVIATION_PERCENT: { [chainId in ChainId]: number } = {
   [ChainId.UNICHAIN_SEPOLIA]: 50,
   [ChainId.UNICHAIN]: 85,
   [ChainId.MONAD_TESTNET]: 50,
+  [ChainId.MONAD]: 50,
   [ChainId.BASE_SEPOLIA]: 50,
   [ChainId.SONEIUM]: 50,
+  [ChainId.XLAYER]: 50,
 };
 
 const V2_SUPPORTED_PAIRS = [
-  [WETH9[ChainId.ARBITRUM_ONE], USDC_NATIVE_ARBITRUM],
-  [WETH9[ChainId.OPTIMISM], USDC_NATIVE_OPTIMISM],
-  [WRAPPED_NATIVE_CURRENCY[ChainId.POLYGON], USDC_NATIVE_POLYGON],
-  [WETH9[ChainId.BASE], USDC_NATIVE_BASE],
-  [WRAPPED_NATIVE_CURRENCY[ChainId.BNB], USDC_BNB],
-  [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE], USDC_NATIVE_AVAX],
-  [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM], USDC_SONEIUM],
+  [WETH9[ChainId.ARBITRUM_ONE]!, USDC_NATIVE_ARBITRUM],
+  [WETH9[ChainId.OPTIMISM]!, USDC_NATIVE_OPTIMISM],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.POLYGON]!, USDC_NATIVE_POLYGON],
+  [WETH9[ChainId.BASE]!, USDC_NATIVE_BASE],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.BNB]!, USDC_BNB],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!, USDC_NATIVE_AVAX],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!, USDC_SONEIUM],
 ];
 
 const checkQuoteToken = (
@@ -645,7 +647,7 @@ describe('alpha router integration', () => {
 
     await hardhat.fund(
       alice._address,
-      [parseAmount('4000', WETH9[1])],
+      [parseAmount('4000', WETH9[1]!)],
       [
         '0x6B44ba0a126a2A1a8aa6cD1AdeeD002e141Bcd44', // WETH whale
       ]
@@ -677,9 +679,9 @@ describe('alpha router integration', () => {
     expect(!aliceUSDTBalance.lessThan(parseAmount('5000000', USDT_MAINNET)));
     const aliceWETH9Balance = await hardhat.getBalance(
       alice._address,
-      WETH9[1]
+      WETH9[1]!
     );
-    expect(aliceWETH9Balance).toEqual(parseAmount('4000', WETH9[1]));
+    expect(aliceWETH9Balance).toEqual(parseAmount('4000', WETH9[1]!));
     const aliceDAIBalance = await hardhat.getBalance(
       alice._address,
       DAI_MAINNET
@@ -1458,7 +1460,7 @@ describe('alpha router integration', () => {
         });
 
         it(`weth -> erc20`, async () => {
-          const tokenIn = WETH9[1];
+          const tokenIn = WETH9[1]!;
           const tokenOut = DAI_MAINNET;
           const amount =
             tradeType == TradeType.EXACT_INPUT
@@ -1499,7 +1501,7 @@ describe('alpha router integration', () => {
 
         it(`erc20 -> weth`, async () => {
           const tokenIn = USDC_MAINNET;
-          const tokenOut = WETH9[1];
+          const tokenOut = WETH9[1]!;
           const amount =
             tradeType == TradeType.EXACT_INPUT
               ? parseAmount('100', tokenIn)
@@ -2145,7 +2147,7 @@ describe('alpha router integration', () => {
           });
 
           it(`weth -> erc20`, async () => {
-            const tokenIn = WETH9[1];
+            const tokenIn = WETH9[1]!;
             const tokenOut = DAI_MAINNET;
             const amount =
               tradeType == TradeType.EXACT_INPUT
@@ -2204,7 +2206,7 @@ describe('alpha router integration', () => {
 
           it(`erc20 -> weth`, async () => {
             const tokenIn = USDC_MAINNET;
-            const tokenOut = WETH9[1];
+            const tokenOut = WETH9[1]!;
             const amount =
               tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('100', tokenIn)
@@ -3692,8 +3694,10 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN_SEPOLIA]: () => USDC_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => USDC_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => USDC_ON(ChainId.MONAD_TESTNET),
+    [ChainId.MONAD]: () => USDC_ON(ChainId.MONAD),
     [ChainId.BASE_SEPOLIA]: () => USDC_ON(ChainId.BASE_SEPOLIA),
     [ChainId.SONEIUM]: () => USDC_ON(ChainId.SONEIUM),
+    [ChainId.XLAYER]: () => USDC_ON(ChainId.XLAYER),
   };
   const TEST_ERC20_2: { [chainId in ChainId]: () => Token } = {
     [ChainId.MAINNET]: () => DAI_ON(1),
@@ -3724,8 +3728,10 @@ describe('quote for other networks', () => {
     [ChainId.UNICHAIN_SEPOLIA]: () => WNATIVE_ON(ChainId.UNICHAIN_SEPOLIA),
     [ChainId.UNICHAIN]: () => DAI_ON(ChainId.UNICHAIN),
     [ChainId.MONAD_TESTNET]: () => WNATIVE_ON(ChainId.MONAD_TESTNET),
+    [ChainId.MONAD]: () => WNATIVE_ON(ChainId.MONAD),
     [ChainId.BASE_SEPOLIA]: () => WNATIVE_ON(ChainId.BASE_SEPOLIA),
     [ChainId.SONEIUM]: () => WNATIVE_ON(ChainId.SONEIUM),
+    [ChainId.XLAYER]: () => WNATIVE_ON(ChainId.XLAYER),
   };
 
   // TODO: Find valid pools/tokens on optimistic kovan and polygon mumbai. We skip those tests for now.
@@ -3847,6 +3853,8 @@ describe('quote for other networks', () => {
               30000,
               true,
               0.01,
+              0.001,
+              new Set<string>(),
               Number.MAX_VALUE,
               SUBGRAPH_URL_BY_CHAIN[chain]
             );
@@ -3925,10 +3933,10 @@ describe('quote for other networks', () => {
             const tokenIn = wrappedNative;
             const tokenOut = erc1;
             const amount =
-              chain === ChainId.UNICHAIN_SEPOLIA
+              chain === ChainId.UNICHAIN_SEPOLIA || chain === ChainId.XLAYER
                 ? tradeType == TradeType.EXACT_INPUT
                   ? parseAmount('0.001', tokenIn)
-                  : parseAmount('0.001', tokenOut)
+                  : parseAmount('0.000001', tokenOut)
                 : tradeType == TradeType.EXACT_INPUT
                 ? parseAmount('10', tokenIn)
                 : parseAmount('10', tokenOut);
@@ -3988,6 +3996,11 @@ describe('quote for other networks', () => {
               return;
             }
 
+            if (chain === ChainId.XLAYER) {
+              // xlayer doesn't have liquid DAI/USDC pool yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -4033,14 +4046,16 @@ describe('quote for other networks', () => {
               chain === ChainId.UNICHAIN_SEPOLIA ||
               chain === ChainId.MONAD_TESTNET ||
               chain === ChainId.BASE_SEPOLIA ||
-              chain === ChainId.SONEIUM
+              chain === ChainId.SONEIUM ||
+              chain === ChainId.XLAYER
             ) {
               // Blast doesn't have DAI or USDC yet
               // Zora doesn't have DAI
               // Zksync doesn't have liquid USDC/DAI pool yet
               // UNICHAIN sepolia doesn't have liquid USDC/DAI pool yet
-              // monad testnet doesn't have liquid USDC/DAI pool yet
+              // monad testnet / mainnet doesn't have liquid USDC/DAI pool yet
               // soneium doesn't have liquid USDC/DAI pool yet
+              // xlayer doesn't have liquid USDC/DAI pool yet
               return;
             }
 
@@ -4176,6 +4191,11 @@ describe('quote for other networks', () => {
               return;
             }
 
+            if (chain === ChainId.XLAYER) {
+              // xlayer doesn't have liquid DAI/USDC pool yet
+              return;
+            }
+
             const tokenIn = erc1;
             const tokenOut = erc2;
 
@@ -4247,7 +4267,11 @@ describe('quote for other networks', () => {
               return;
             }
             it(`${wrappedNative.symbol} -> erc20`, async () => {
-              if (chain === ChainId.SEPOLIA || chain === ChainId.SONEIUM) {
+              if (
+                chain === ChainId.SEPOLIA ||
+                chain === ChainId.SONEIUM ||
+                chain === ChainId.XLAYER
+              ) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;
               }
@@ -4505,6 +4529,11 @@ describe('quote for other networks', () => {
                 return;
               }
 
+              if (chain === ChainId.XLAYER) {
+                // XLayer only has wokb/usdc pool
+                return;
+              }
+
               const tokenIn = erc1;
               const tokenOut = erc2;
               const amount =
@@ -4635,7 +4664,8 @@ describe('quote for other networks', () => {
                 chain === ChainId.UNICHAIN_SEPOLIA ||
                 chain === ChainId.MONAD_TESTNET ||
                 chain === ChainId.BASE_SEPOLIA ||
-                chain === ChainId.SONEIUM
+                chain === ChainId.SONEIUM ||
+                chain === ChainId.XLAYER
               ) {
                 // Sepolia doesn't have sufficient liquidity on DAI pools yet
                 return;

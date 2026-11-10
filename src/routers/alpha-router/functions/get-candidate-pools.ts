@@ -1,12 +1,15 @@
-import { Protocol } from '@kittycorn-labs/router-sdk';
+import { ADDRESS_ZERO, Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token, TradeType } from '@kittycorn-labs/sdk-core';
 import { isNativeCurrency } from '@kittycorn-labs/universal-router-sdk';
 import { FeeAmount } from '@kittycorn-labs/v3-sdk';
-import { BASE_TOKENIZE_UNDERLYING } from '@kittycorn-labs/v4-sdk';
+import { DYNAMIC_FEE_FLAG } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
+import { getWrappedNativeCurrency } from '../../../util/chains';
+import { KITTYCORN_BASE_SEPOLIA } from '../../../util/tokenize';
 
 import {
   DAI_OPTIMISM_SEPOLIA,
+  isPoolFeeDynamic,
   ITokenListProvider,
   IV2SubgraphProvider,
   IV4PoolProvider,
@@ -47,6 +50,7 @@ import {
   USDC_BNB,
   USDC_ETHEREUM_GNOSIS,
   USDC_MAINNET,
+  USDC_MONAD,
   USDC_MOONBEAM,
   USDC_OPTIMISM,
   USDC_OPTIMISM_GOERLI,
@@ -54,20 +58,19 @@ import {
   USDC_SEPOLIA,
   USDC_SONEIUM,
   USDC_UNICHAIN,
+  USDC_XLAYER,
   USDT_ARBITRUM,
   USDT_BNB,
   USDT_MAINNET,
   USDT_MONAD_TESTNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
-  USDT_SEPOLIA,
   WBTC_ARBITRUM,
   WBTC_GNOSIS,
   WBTC_MAINNET,
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WBTC_OPTIMISM_GOERLI,
-  WBTC_SEPOLIA,
   WGLMR_MOONBEAM,
   WMATIC_POLYGON,
   WMATIC_POLYGON_MUMBAI,
@@ -91,6 +94,7 @@ import {
   getAddressLowerCase,
   getApplicableV3FeeAmounts,
   getApplicableV4FeesTickspacingsHooks,
+  HooksOptions,
   nativeOnChain,
   unparseFeeAmount,
   WRAPPED_NATIVE_CURRENCY,
@@ -128,10 +132,13 @@ export type MixedCrossLiquidityCandidatePoolsParams = {
   tokenOut: Token;
   v2SubgraphProvider: IV2SubgraphProvider;
   v3SubgraphProvider: IV3SubgraphProvider;
+  v4SubgraphProvider: IV4SubgraphProvider;
+  chainId?: ChainId;
   v2Candidates?: V2CandidatePools;
   v3Candidates?: V3CandidatePools;
   v4Candidates?: V4CandidatePools;
   blockNumber?: number | Promise<number>;
+  mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
 };
 
 export type V4GetCandidatePoolsParams = {
@@ -191,7 +198,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDT_MAINNET,
     WBTC_MAINNET,
     DAI_MAINNET,
-    WRAPPED_NATIVE_CURRENCY[1]!,
+    getWrappedNativeCurrency(1)!,
     FEI_MAINNET,
     WSTETH_MAINNET,
   ],
@@ -205,8 +212,6 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!,
     DAI_SEPOLIA,
     USDC_SEPOLIA,
-    USDT_SEPOLIA,
-    WBTC_SEPOLIA,
   ],
   [ChainId.OPTIMISM_GOERLI]: [
     DAI_OPTIMISM_GOERLI,
@@ -257,6 +262,7 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     WRAPPED_NATIVE_CURRENCY[ChainId.MONAD_TESTNET]!,
     USDT_MONAD_TESTNET,
   ],
+  [ChainId.MONAD]: [WRAPPED_NATIVE_CURRENCY[ChainId.MONAD]!, USDC_MONAD],
   [ChainId.BASE_SEPOLIA]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
     USDC_BASE_SEPOLIA,
@@ -267,7 +273,13 @@ const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
     USDC_UNICHAIN,
   ],
   [ChainId.SONEIUM]: [USDC_SONEIUM, WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!],
+  [ChainId.XLAYER]: [USDC_XLAYER, WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!],
 };
+
+const excludedV3PoolIds = new Set([
+  // https://linear.app/uniswap/issue/CX-1005
+  '0x0f681f10ab1aa1cde04232a199fe3c6f2652a80c'.toLowerCase(),
+]);
 
 class SubcategorySelectionPools<SubgraphPool> {
   constructor(
@@ -283,6 +295,7 @@ class SubcategorySelectionPools<SubgraphPool> {
 export type CrossLiquidityCandidatePools = {
   v2Pools: V2SubgraphPool[];
   v3Pools: V3SubgraphPool[];
+  v4Pools: V4SubgraphPool[];
 };
 
 /**
@@ -302,6 +315,9 @@ export async function getMixedCrossLiquidityCandidatePools({
   v3SubgraphProvider,
   v2Candidates,
   v3Candidates,
+  v4Candidates,
+  mixedCrossLiquidityV3AgainstV4Supported,
+  chainId,
 }: MixedCrossLiquidityCandidatePoolsParams): Promise<CrossLiquidityCandidatePools> {
   const v2Pools = (
     await v2SubgraphProvider.getPools(tokenIn, tokenOut, {
@@ -317,7 +333,7 @@ export async function getMixedCrossLiquidityCandidatePools({
   const tokenInAddress = tokenIn.address.toLowerCase();
   const tokenOutAddress = tokenOut.address.toLowerCase();
 
-  const v2SelectedPools = findCrossProtocolMissingPools(
+  const v2AgainstV3SelectedPools = findCrossProtocolMissingPools(
     tokenInAddress,
     tokenOutAddress,
     v2Pools,
@@ -325,7 +341,7 @@ export async function getMixedCrossLiquidityCandidatePools({
     v3Candidates
   );
 
-  const v3SelectedPools = findCrossProtocolMissingPools(
+  const v3AgainstV2SelectedPools = findCrossProtocolMissingPools(
     tokenInAddress,
     tokenOutAddress,
     v3Pools,
@@ -333,25 +349,63 @@ export async function getMixedCrossLiquidityCandidatePools({
     v2Candidates
   );
 
+  const v3AgainstV4SelectedPools =
+    chainId && mixedCrossLiquidityV3AgainstV4Supported?.includes(chainId)
+      ? findCrossProtocolMissingPools(
+          tokenInAddress,
+          tokenOutAddress,
+          v3Pools,
+          v3Candidates,
+          v4Candidates
+        )
+      : { forTokenIn: undefined, forTokenOut: undefined };
+
+  // this is for deduplicate v3 pools, in case both v4 and v2 select the same v3 pools for tokenIn/tokenOut
+  if (
+    v3AgainstV4SelectedPools.forTokenIn?.id ===
+      v3AgainstV2SelectedPools.forTokenIn?.id ||
+    v3AgainstV4SelectedPools.forTokenIn?.id ===
+      v3AgainstV2SelectedPools.forTokenOut?.id
+  ) {
+    v3AgainstV4SelectedPools.forTokenIn = undefined;
+  }
+  if (
+    v3AgainstV4SelectedPools.forTokenOut?.id ===
+      v3AgainstV2SelectedPools.forTokenIn?.id ||
+    v3AgainstV4SelectedPools.forTokenOut?.id ===
+      v3AgainstV2SelectedPools.forTokenOut?.id
+  ) {
+    v3AgainstV4SelectedPools.forTokenOut = undefined;
+  }
+
   const selectedV2Pools = [
-    v2SelectedPools.forTokenIn,
-    v2SelectedPools.forTokenOut,
+    v2AgainstV3SelectedPools.forTokenIn,
+    v2AgainstV3SelectedPools.forTokenOut,
   ].filter((pool) => pool !== undefined) as V2SubgraphPool[];
   const selectedV3Pools = [
-    v3SelectedPools.forTokenIn,
-    v3SelectedPools.forTokenOut,
+    v3AgainstV2SelectedPools.forTokenIn,
+    v3AgainstV2SelectedPools.forTokenOut,
+    v3AgainstV4SelectedPools.forTokenIn,
+    v3AgainstV4SelectedPools.forTokenOut,
   ].filter((pool) => pool !== undefined) as V3SubgraphPool[];
 
   return {
     v2Pools: selectedV2Pools,
     v3Pools: selectedV3Pools,
+    v4Pools: [],
   };
 }
 
 function findCrossProtocolMissingPools<
   TSubgraphPool extends SubgraphPool,
-  CandidatePoolsProtocolToSearch extends V2CandidatePools | V3CandidatePools,
-  CandidatePoolsContextualProtocol extends V2CandidatePools | V3CandidatePools
+  CandidatePoolsProtocolToSearch extends
+    | V2CandidatePools
+    | V3CandidatePools
+    | V4CandidatePools,
+  CandidatePoolsContextualProtocol extends
+    | V2CandidatePools
+    | V3CandidatePools
+    | V4CandidatePools
 >(
   tokenInAddress: string,
   tokenOutAddress: string,
@@ -536,6 +590,18 @@ export async function getV4CandidatePools({
               subgraphPool.token0.id == tokenInAddress)
           );
         })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
+        })
         .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
         .slice(0, topNWithEachBaseToken)
         .value();
@@ -556,6 +622,18 @@ export async function getV4CandidatePools({
               subgraphPool.token0.id == tokenOutAddress)
           );
         })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
+        })
         .sortBy((tokenListPool) => -tokenListPool.tvlUSD)
         .slice(0, topNWithEachBaseToken)
         .value();
@@ -574,13 +652,30 @@ export async function getV4CandidatePools({
             subgraphPool.token0.id == tokenOutAddress))
       );
     })
+    .filter((subgraphPool) => {
+      // in case of hooks only, it means we want to filter out hookless pools
+      if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+        return subgraphPool.hooks !== ADDRESS_ZERO;
+      }
+      // in case of no hooks, it means we want to filter out hook pools
+      if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+        return subgraphPool.hooks === ADDRESS_ZERO;
+      }
+      // otherwise it's the default case, so we just return true
+      return true;
+    })
     .slice(0, topNDirectSwaps)
     .value();
 
-  if (top2DirectSwapPool.length == 0 && topNDirectSwaps > 0) {
+  if (
+    top2DirectSwapPool.length == 0 &&
+    topNDirectSwaps > 0 &&
+    routingConfig.hooksOptions !== HooksOptions.HOOKS_ONLY
+  ) {
     // If we requested direct swap pools but did not find any in the subgraph query.
     // Optimistically add them into the query regardless. Invalid pools ones will be dropped anyway
     // when we query the pool on-chain. Ensures that new pools for new pairs can be swapped on immediately.
+    // Also we need to avoid adding hookless pools into the query, when upstream requested hooksOnly
     top2DirectSwapPool = _.map(
       v4PoolParams as Array<[number, number, string]>,
       (poolParams) => {
@@ -600,10 +695,16 @@ export async function getV4CandidatePools({
           hooks: hooks,
           liquidity: '10000',
           token0: {
+            symbol: currency0.symbol,
             id: getAddress(currency0),
+            name: currency0.name,
+            decimals: currency0.decimals.toString(),
           },
           token1: {
+            symbol: currency1.symbol,
             id: getAddress(currency1),
+            name: currency1.name,
+            decimals: currency1.decimals.toString(),
           },
           tvlETH: 10000,
           tvlUSD: 10000,
@@ -615,19 +716,19 @@ export async function getV4CandidatePools({
   addToAddressSet(top2DirectSwapPool);
 
   const wrappedNativeAddress =
-    WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLowerCase();
+    getWrappedNativeCurrency(chainId)?.address.toLowerCase();
 
   // Main reason we need this is for gas estimates, only needed if token out is not native.
   // We don't check the seen address set because if we've already added pools for getting native quotes
   // theres no need to add more.
   let top2EthQuoteTokenPool: V4SubgraphPool[] = [];
   if (
-    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol ==
-      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]?.symbol &&
+    (getWrappedNativeCurrency(chainId)?.symbol ==
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!?.symbol &&
       currencyOut.symbol != 'WETH' &&
       currencyOut.symbol != 'WETH9' &&
       currencyOut.symbol != 'ETH') ||
-    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
+    (getWrappedNativeCurrency(chainId)?.symbol == WMATIC_POLYGON.symbol &&
       currencyOut.symbol != 'MATIC' &&
       currencyOut.symbol != 'WMATIC')
   ) {
@@ -672,6 +773,18 @@ export async function getV4CandidatePools({
           subgraphPool.token1.id == tokenInAddress)
       );
     })
+    .filter((subgraphPool) => {
+      // in case of hooks only, it means we want to filter out hookless pools
+      if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+        return subgraphPool.hooks !== ADDRESS_ZERO;
+      }
+      // in case of no hooks, it means we want to filter out hook pools
+      if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+        return subgraphPool.hooks === ADDRESS_ZERO;
+      }
+      // otherwise it's the default case, so we just return true
+      return true;
+    })
     .slice(0, topNTokenInOut)
     .value();
 
@@ -684,6 +797,18 @@ export async function getV4CandidatePools({
         (subgraphPool.token0.id == tokenOutAddress ||
           subgraphPool.token1.id == tokenOutAddress)
       );
+    })
+    .filter((subgraphPool) => {
+      // in case of hooks only, it means we want to filter out hookless pools
+      if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+        return subgraphPool.hooks !== ADDRESS_ZERO;
+      }
+      // in case of no hooks, it means we want to filter out hook pools
+      if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+        return subgraphPool.hooks === ADDRESS_ZERO;
+      }
+      // otherwise it's the default case, so we just return true
+      return true;
     })
     .slice(0, topNTokenInOut)
     .value();
@@ -705,6 +830,18 @@ export async function getV4CandidatePools({
             (subgraphPool.token0.id == secondHopId ||
               subgraphPool.token1.id == secondHopId)
           );
+        })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
         })
         .slice(
           0,
@@ -733,6 +870,18 @@ export async function getV4CandidatePools({
               subgraphPool.token1.id == secondHopId)
           );
         })
+        .filter((subgraphPool) => {
+          // in case of hooks only, it means we want to filter out hookless pools
+          if (routingConfig.hooksOptions === HooksOptions.HOOKS_ONLY) {
+            return subgraphPool.hooks !== ADDRESS_ZERO;
+          }
+          // in case of no hooks, it means we want to filter out hook pools
+          if (routingConfig.hooksOptions === HooksOptions.NO_HOOKS) {
+            return subgraphPool.hooks === ADDRESS_ZERO;
+          }
+          // otherwise it's the default case, so we just return true
+          return true;
+        })
         .slice(
           0,
           topNSecondHopForTokenAddress?.get(secondHopId) ?? topNSecondHop
@@ -746,7 +895,10 @@ export async function getV4CandidatePools({
 
   // Kittycorn top by tokenize pools
   const tokenizes =
-    BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
+    (chainId === KITTYCORN_BASE_SEPOLIA.chainId
+      ? KITTYCORN_BASE_SEPOLIA.tokens
+      : []
+    ).map((base) => {
       return base.tokenize.address.toLocaleLowerCase();
     }) || [];
   const topByTokenize = _(subgraphPoolsSorted)
@@ -825,9 +977,18 @@ export async function getV4CandidatePools({
     const tokenB = isNativeCurrency(subgraphPool.token1.id)
       ? nativeOnChain(chainId)
       : tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
-    let fee: FeeAmount;
+    let fee: number;
     try {
       fee = Number(subgraphPool.feeTier);
+      fee = isPoolFeeDynamic(
+        tokenA!,
+        tokenB!,
+        Number(subgraphPool.tickSpacing),
+        subgraphPool.hooks,
+        subgraphPool.id
+      )
+        ? DYNAMIC_FEE_FLAG
+        : fee;
     } catch (err) {
       log.info(
         { subgraphPool },
@@ -1078,25 +1239,29 @@ export async function getV3CandidatePools({
           };
         }
       );
+
+      top2DirectSwapPool = top2DirectSwapPool.filter(
+        (pool) => !excludedV3PoolIds.has(pool.id.toLowerCase())
+      );
     }
   }
 
   addToAddressSet(top2DirectSwapPool);
 
   const wrappedNativeAddress =
-    WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLowerCase();
+    getWrappedNativeCurrency(chainId)?.address.toLowerCase();
 
   // Main reason we need this is for gas estimates, only needed if token out is not native.
   // We don't check the seen address set because if we've already added pools for getting native quotes
   // theres no need to add more.
   let top2EthQuoteTokenPool: V3SubgraphPool[] = [];
   if (
-    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol ==
-      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]?.symbol &&
+    (getWrappedNativeCurrency(chainId)?.symbol ==
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!?.symbol &&
       tokenOut.symbol != 'WETH' &&
       tokenOut.symbol != 'WETH9' &&
       tokenOut.symbol != 'ETH') ||
-    (WRAPPED_NATIVE_CURRENCY[chainId]?.symbol == WMATIC_POLYGON.symbol &&
+    (getWrappedNativeCurrency(chainId)?.symbol == WMATIC_POLYGON.symbol &&
       tokenOut.symbol != 'MATIC' &&
       tokenOut.symbol != 'WMATIC')
   ) {
@@ -1419,7 +1584,7 @@ export async function getV2CandidatePools({
     ];
   }
 
-  const wethAddress = WRAPPED_NATIVE_CURRENCY[chainId]!.address.toLowerCase();
+  const wethAddress = getWrappedNativeCurrency(chainId)!.address.toLowerCase();
 
   const topByBaseWithTokenInMap: Map<
     string,
@@ -2023,6 +2188,7 @@ export async function getMixedRouteCandidatePools({
   // Injects the liquidity pools found by the getMixedCrossLiquidityCandidatePools function
   V2subgraphPools.push(...crossLiquidityPools.v2Pools);
   V3subgraphPools.push(...crossLiquidityPools.v3Pools);
+  V4subgraphPools.push(...crossLiquidityPools.v4Pools);
 
   metric.putMetric(
     'MixedSubgraphPoolsLoad',

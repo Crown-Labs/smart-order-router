@@ -1,17 +1,13 @@
+import { Interface } from '@ethersproject/abi';
+import { BigNumber } from '@ethersproject/bignumber';
 import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
-import { NoTickDataProvider } from '@kittycorn-labs/v3-sdk';
-import { BASE_TOKENIZE_UNDERLYING, Pool } from '@kittycorn-labs/v4-sdk';
+import { encodeSqrtRatioX96, TickMath } from '@kittycorn-labs/v3-sdk';
+import { DYNAMIC_FEE_FLAG, Pool } from '@kittycorn-labs/v4-sdk';
 import retry, { Options as RetryOptions } from 'async-retry';
-import JSBI from 'jsbi';
+import { getTokenizePairs, KITTYCORN_BASE_SEPOLIA } from '../../util/tokenize';
 
 import { StateView__factory } from '../../types/other/factories/StateView__factory';
-import {
-  getAddress,
-  log,
-  nativeOnChain,
-  STATE_VIEW_ADDRESSES,
-  WRAPPED_NATIVE_CURRENCY,
-} from '../../util';
+import { getAddress, log, STATE_VIEW_ADDRESSES } from '../../util';
 import { IMulticallProvider, Result } from '../multicall-provider';
 import { ILiquidity, ISlot0, PoolProvider } from '../pool-provider';
 import { ProviderConfig } from '../provider';
@@ -61,6 +57,24 @@ export function sortsBefore(currencyA: Currency, currencyB: Currency): boolean {
   return currencyA.wrapped.sortsBefore(currencyB.wrapped);
 }
 
+export function isPoolFeeDynamic(
+  tokenA: Currency,
+  tokenB: Currency,
+  tickSpacing: number,
+  hooks: string,
+  poolId: string
+): boolean {
+  return (
+    Pool.getPoolId(
+      tokenA!,
+      tokenB!,
+      DYNAMIC_FEE_FLAG,
+      tickSpacing,
+      hooks
+    ).toLowerCase() === poolId.toLowerCase()
+  );
+}
+
 export class V4PoolProvider
   extends PoolProvider<
     Currency,
@@ -97,7 +111,73 @@ export class V4PoolProvider
     currencyPairs: V4PoolConstruct[],
     providerConfig?: ProviderConfig
   ): Promise<V4PoolAccessor> {
-    return await super.getPoolsInternal(currencyPairs, providerConfig);
+    const conversionPairs = getTokenizePairs(this.chainId);
+    if (!conversionPairs.length)
+      return super.getPoolsInternal(currencyPairs, providerConfig);
+    const conversionIds = new Set(
+      conversionPairs.map((p) => this.getPoolId(...p).poolId)
+    );
+    const accessor = await super.getPoolsInternal(
+      currencyPairs.filter(
+        (p) => !conversionIds.has(this.getPoolId(...p).poolId)
+      ),
+      providerConfig
+    );
+    const pools: { [id: string]: Pool } = {};
+    for (const pool of accessor.getAllPools()) pools[pool.poolId] = pool;
+    const contractInterface = new Interface([
+      'function totalAssets() view returns (uint256)',
+      'function totalSupply() view returns (uint256)',
+      'function asset() view returns (address)',
+      'function bank() view returns (address)',
+    ]);
+    await Promise.all(
+      KITTYCORN_BASE_SEPOLIA.tokens.map(async ({ underlying, tokenize }) => {
+        const { results } =
+          await this.multicall2Provider.callMultipleFunctionsOnSameContract<
+            undefined,
+            [BigNumber | string]
+          >({
+            address: tokenize.address,
+            contractInterface,
+            functionNames: ['totalAssets', 'totalSupply', 'asset', 'bank'],
+            providerConfig,
+          });
+        if (results.length !== 4 || results.some((r) => !r.success))
+          throw new Error('Cannot read Kittycorn ERC4626 reserve');
+        const values = results.map((r) =>
+          r.success ? r.result[0] : undefined
+        );
+        if (
+          String(values[2]).toLowerCase() !==
+            underlying.address.toLowerCase() ||
+          String(values[3]).toLowerCase() !==
+            KITTYCORN_BASE_SEPOLIA.bank.toLowerCase()
+        ) {
+          throw new Error('Kittycorn Tokenize registration mismatch');
+        }
+        // Tokenize uses OpenZeppelin's offset-zero virtual asset/share ratio.
+        const assets = BigNumber.from(values[0]).add(1).toString();
+        const shares = BigNumber.from(values[1]).add(1).toString();
+        const underlyingFirst = underlying.sortsBefore(tokenize);
+        const sqrtPrice = encodeSqrtRatioX96(
+          underlyingFirst ? shares : assets,
+          underlyingFirst ? assets : shares
+        );
+        const pool = new Pool(
+          underlying,
+          tokenize,
+          0,
+          1,
+          '0x0000000000000000000000000000000000000000',
+          sqrtPrice,
+          '1000000000000000000',
+          TickMath.getTickAtSqrtRatio(sqrtPrice)
+        );
+        pools[pool.poolId] = pool;
+      })
+    );
+    return this.instantiatePoolAccessor(pools);
   }
 
   public getPoolId(
@@ -207,49 +287,6 @@ export class V4PoolProvider
   protected instantiatePoolAccessor(poolIdentifierToPool: {
     [p: string]: Pool;
   }): V4PoolAccessor {
-    // Kittycorn: implements a custom pool accessor that allows for supported Tokenize token path
-    const pairs = BASE_TOKENIZE_UNDERLYING[this.chainId]?.map((base) => {
-      return {
-        currencyA: base.tokenize as Currency,
-        currencyB: base.underlying as Currency,
-      };
-    });
-
-    // Add native currency pair with wrapped native currency
-    pairs?.push({
-      currencyA: nativeOnChain(this.chainId) as Currency,
-      currencyB: WRAPPED_NATIVE_CURRENCY[this.chainId]! as Currency,
-    });
-
-    // Make a pool for each pair
-    pairs?.forEach((base) => {
-      const [currency0, currency1] = sortsBefore(base.currencyA, base.currencyB)
-        ? [base.currencyA, base.currencyB]
-        : [base.currencyB, base.currencyA];
-
-      const pool = new Pool(
-        currency0,
-        currency1,
-        3000, // default fee for Tokenize
-        60, // default tickSpacing for Tokenize
-        '0x0000000000000000000000000000000000000000', // hooks
-        JSBI.BigInt('79228162514264337593543950336'), // sqrtRatioX96 1:1
-        JSBI.BigInt('100000000000000000'), // liquidity
-        0, // tickCurrent
-        new NoTickDataProvider()
-      );
-
-      const { poolId } = this.getPoolId(
-        pool.currency0,
-        pool.currency1,
-        pool.fee,
-        pool.tickSpacing,
-        pool.hooks
-      );
-
-      poolIdentifierToPool[poolId] = pool;
-    });
-
     return {
       getPool: (
         currencyA: Currency,

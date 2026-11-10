@@ -137,6 +137,11 @@ export class PortionProvider implements IPortionProvider {
     }
 
     const swapConfigUniversalRouter = swapConfig as SwapOptionsUniversalRouter;
+    if (Array.isArray(swapConfigUniversalRouter.fee)) {
+      throw new Error(
+        'SOR portion accounting currently supports one fee recipient'
+      );
+    }
     switch (tradeType) {
       case TradeType.EXACT_INPUT:
         if (

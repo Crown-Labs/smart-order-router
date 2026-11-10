@@ -29,6 +29,7 @@ import {
   DAI_OPTIMISM,
   DAI_OPTIMISM_GOERLI,
   DAI_POLYGON_MUMBAI,
+  DAI_UNICHAIN,
   ETH_BNB,
   OP_OPTIMISM,
   USDB_BLAST,
@@ -42,14 +43,17 @@ import {
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
   USDC_MAINNET,
+  USDC_MONAD,
   USDC_MOONBEAM,
   USDC_OPTIMISM,
   USDC_OPTIMISM_GOERLI,
   USDC_POLYGON,
   USDC_SEPOLIA,
   USDC_SONEIUM,
+  USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
+  USDC_XLAYER,
   USDC_ZKSYNC,
   USDT_ARBITRUM,
   USDT_BNB,
@@ -58,7 +62,6 @@ import {
   USDT_MONAD_TESTNET,
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
-  USDT_SEPOLIA,
   WBTC_ARBITRUM,
   WBTC_GNOSIS,
   WBTC_GOERLI,
@@ -66,7 +69,6 @@ import {
   WBTC_MOONBEAM,
   WBTC_OPTIMISM,
   WBTC_OPTIMISM_GOERLI,
-  WBTC_SEPOLIA,
   WBTC_WORLDCHAIN,
   WETH_POLYGON,
   WLD_WORLDCHAIN,
@@ -80,7 +82,7 @@ import { IV3PoolProvider } from './pool-provider';
 import { IV3SubgraphProvider, V3SubgraphPool } from './subgraph-provider';
 
 type ChainTokenList = {
-  readonly [chainId in ChainId]: Token[];
+  readonly [chainId in ChainId]?: Token[];
 };
 
 const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
@@ -99,12 +101,7 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WBTC_GOERLI,
     DAI_GOERLI,
   ],
-  [ChainId.SEPOLIA]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!,
-    USDC_SEPOLIA,
-    USDT_SEPOLIA,
-    WBTC_SEPOLIA,
-  ],
+  [ChainId.SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.SEPOLIA]!, USDC_SEPOLIA],
   [ChainId.OPTIMISM]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.OPTIMISM]!,
     USDC_OPTIMISM,
@@ -153,13 +150,13 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     DAI_CELO_ALFAJORES,
   ],
   [ChainId.GNOSIS]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.GNOSIS],
+    WRAPPED_NATIVE_CURRENCY[ChainId.GNOSIS]!,
     WBTC_GNOSIS,
     WXDAI_GNOSIS,
     USDC_ETHEREUM_GNOSIS,
   ],
   [ChainId.BNB]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.BNB],
+    WRAPPED_NATIVE_CURRENCY[ChainId.BNB]!,
     BUSD_BNB,
     DAI_BNB,
     USDC_BNB,
@@ -168,18 +165,18 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     ETH_BNB,
   ],
   [ChainId.AVALANCHE]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE],
+    WRAPPED_NATIVE_CURRENCY[ChainId.AVALANCHE]!,
     USDC_AVAX,
     DAI_AVAX,
   ],
   [ChainId.MOONBEAM]: [
-    WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM],
+    WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM]!,
     DAI_MOONBEAM,
     USDC_MOONBEAM,
     WBTC_MOONBEAM,
   ],
-  [ChainId.BASE_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]],
-  [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE], USDC_BASE],
+  [ChainId.BASE_GOERLI]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE_GOERLI]!],
+  [ChainId.BASE]: [WRAPPED_NATIVE_CURRENCY[ChainId.BASE]!, USDC_BASE],
   [ChainId.ZORA]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZORA]!],
   [ChainId.ZORA_SEPOLIA]: [WRAPPED_NATIVE_CURRENCY[ChainId.ZORA_SEPOLIA]!],
   [ChainId.ROOTSTOCK]: [WRAPPED_NATIVE_CURRENCY[ChainId.ROOTSTOCK]!],
@@ -199,16 +196,22 @@ const BASES_TO_CHECK_TRADES_AGAINST: ChainTokenList = {
     WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN_SEPOLIA]!,
     USDC_UNICHAIN_SEPOLIA,
   ],
-  [ChainId.UNICHAIN]: [],
+  [ChainId.UNICHAIN]: [
+    WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
+    DAI_UNICHAIN,
+    USDC_UNICHAIN,
+  ],
   [ChainId.MONAD_TESTNET]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.MONAD_TESTNET]!,
     USDT_MONAD_TESTNET,
   ],
+  [ChainId.MONAD]: [WRAPPED_NATIVE_CURRENCY[ChainId.MONAD]!, USDC_MONAD],
   [ChainId.BASE_SEPOLIA]: [
     WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
     USDC_BASE_SEPOLIA,
   ],
   [ChainId.SONEIUM]: [WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!, USDC_SONEIUM],
+  [ChainId.XLAYER]: [WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!, USDC_XLAYER],
 };
 
 /**
@@ -234,7 +237,7 @@ export class StaticV3SubgraphProvider implements IV3SubgraphProvider {
     providerConfig?: ProviderConfig
   ): Promise<V3SubgraphPool[]> {
     log.info('In static subgraph provider for V3');
-    const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
+    const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId] ?? [];
 
     const basePairs: [Token, Token][] = _.flatMap(
       bases,

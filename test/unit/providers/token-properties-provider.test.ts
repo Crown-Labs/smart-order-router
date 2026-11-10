@@ -1,11 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { JsonRpcProvider } from '@ethersproject/providers';
 import { ChainId, Token, WETH9 } from '@kittycorn-labs/sdk-core';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 import sinon from 'sinon';
 import {
-  ID_TO_PROVIDER,
   NEGATIVE_CACHE_ENTRY_TTL,
   NodeJSCache,
   POSITIVE_CACHE_ENTRY_TTL,
@@ -367,11 +365,14 @@ describe('TokenPropertiesProvider', () => {
       }
     });
 
-    it('real ETH and BITBOY token fee fetch, only BITBOY fetched', async function () {
-      const chain = ChainId.MAINNET;
-      const chainProvider = ID_TO_PROVIDER(chain);
-      const provider = new JsonRpcProvider(chainProvider, chain);
-      const tokenFeeFetcher = new OnChainTokenFeeFetcher(chain, provider);
+    it('allowlisted WETH avoids fee fetching while BITBOY fees are cached', async function () {
+      const tokenFeeFetcher = mockTokenFeeFetcher;
+      tokenFeeFetcher.fetchFees.resolves({
+        [BITBOY.address.toLowerCase()]: {
+          buyFeeBps: BITBOY.buyFeeBps!,
+          sellFeeBps: BITBOY.sellFeeBps!,
+        },
+      });
 
       const underlyingCache: NodeCache = new NodeCache({
         stdTTL: 3600,

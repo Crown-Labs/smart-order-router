@@ -1,13 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber';
-import { partitionMixedRouteByProtocol } from '@kittycorn-labs/router-sdk';
-import { TPool } from '@kittycorn-labs/router-sdk/dist/utils/TPool';
+import {
+  partitionMixedRouteByProtocol,
+  TPool,
+} from '@kittycorn-labs/router-sdk';
 import { ChainId } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
 import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import JSBI from 'jsbi';
+import { getWrappedNativeCurrency } from '../../../../util/chains';
 
-import { WRAPPED_NATIVE_CURRENCY } from '../../../..';
 import { log } from '../../../../util';
 import { CurrencyAmount } from '../../../../util/amounts';
 import { getV2NativePool } from '../../../../util/gas-factory-helpers';
@@ -59,7 +61,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
   }: BuildOnChainGasModelFactoryType): Promise<
     IGasModel<MixedRouteWithValidQuote>
   > {
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    const nativeCurrency = getWrappedNativeCurrency(chainId)!;
     const usdPool: V3Pool = pools.usdPool;
     const usdToken = usdPool.token0.equals(nativeCurrency)
       ? usdPool.token1
@@ -231,7 +233,7 @@ export class MixedRouteHeuristicGasModelFactory extends IOnChainGasModelFactory<
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
-    const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    const wrappedCurrency = getWrappedNativeCurrency(chainId)!;
 
     const totalGasCostNativeCurrency = CurrencyAmount.fromRawAmount(
       wrappedCurrency,

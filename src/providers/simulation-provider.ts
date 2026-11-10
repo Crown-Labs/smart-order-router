@@ -3,15 +3,13 @@ import { ChainId, TradeType } from '@kittycorn-labs/sdk-core';
 import { permit2Address } from '@uniswap/permit2-sdk';
 import { BigNumber } from 'ethers/lib/ethers';
 
-import {
-  GasModelProviderConfig,
-  SwapOptions,
-  SwapRoute,
-  SwapType,
-} from '../routers';
+import { GasModelProviderConfig } from '../routers/alpha-router/gas-models/gas-model';
+import { SwapOptions, SwapRoute, SwapType } from '../routers/router';
 import { Erc20__factory } from '../types/other/factories/Erc20__factory';
 import { Permit2__factory } from '../types/other/factories/Permit2__factory';
-import { CurrencyAmount, log, SWAP_ROUTER_02_ADDRESSES } from '../util';
+import { SWAP_ROUTER_02_ADDRESSES } from '../util/addresses';
+import { CurrencyAmount } from '../util/amounts';
+import { log } from '../util/log';
 
 import { IPortionProvider } from './portion-provider';
 

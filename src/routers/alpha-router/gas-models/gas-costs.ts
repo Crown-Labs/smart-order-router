@@ -31,7 +31,9 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
     case ChainId.UNICHAIN:
     case ChainId.BASE_SEPOLIA:
     case ChainId.MONAD_TESTNET: // TODO: double check on monad gas
+    case ChainId.MONAD: // TODO: double check on monad gas
     case ChainId.SONEIUM:
+    case ChainId.XLAYER:
       return BigNumber.from(2000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
@@ -51,6 +53,7 @@ export const BASE_SWAP_COST = (id: ChainId): BigNumber => {
     case ChainId.MOONBEAM:
       return BigNumber.from(2000);
   }
+  throw new Error(`Unsupported gas model chain: ${id}`);
 };
 export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
   switch (id) {
@@ -75,7 +78,9 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
     case ChainId.UNICHAIN:
     case ChainId.BASE_SEPOLIA:
     case ChainId.MONAD_TESTNET: // TODO: double check on monad gas
+    case ChainId.MONAD: // TODO: double check on monad gas
     case ChainId.SONEIUM:
+    case ChainId.XLAYER:
       return BigNumber.from(31000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
@@ -92,6 +97,7 @@ export const COST_PER_INIT_TICK = (id: ChainId): BigNumber => {
     case ChainId.MOONBEAM:
       return BigNumber.from(31000);
   }
+  throw new Error(`Unsupported gas model chain: ${id}`);
 };
 
 export const COST_PER_HOP = (id: ChainId): BigNumber => {
@@ -116,7 +122,9 @@ export const COST_PER_HOP = (id: ChainId): BigNumber => {
     case ChainId.UNICHAIN:
     case ChainId.BASE_SEPOLIA:
     case ChainId.MONAD_TESTNET: // TODO: double check on monad gas
+    case ChainId.MONAD: // TODO: double check on monad gas
     case ChainId.SONEIUM:
+    case ChainId.XLAYER:
       return BigNumber.from(80000);
     case ChainId.ARBITRUM_ONE:
     case ChainId.ARBITRUM_GOERLI:
@@ -133,6 +141,7 @@ export const COST_PER_HOP = (id: ChainId): BigNumber => {
     case ChainId.MOONBEAM:
       return BigNumber.from(80000);
   }
+  throw new Error(`Unsupported gas model chain: ${id}`);
 };
 
 export const SINGLE_HOP_OVERHEAD = (_id: ChainId): BigNumber => {
@@ -170,6 +179,7 @@ export const NATIVE_WRAP_OVERHEAD = (id: ChainId): BigNumber => {
     default:
       return BigNumber.from(27938);
   }
+  throw new Error(`Unsupported gas model chain: ${id}`);
 };
 
 export const NATIVE_UNWRAP_OVERHEAD = (id: ChainId): BigNumber => {
@@ -177,6 +187,7 @@ export const NATIVE_UNWRAP_OVERHEAD = (id: ChainId): BigNumber => {
     default:
       return BigNumber.from(36000);
   }
+  throw new Error(`Unsupported gas model chain: ${id}`);
 };
 
 export const NATIVE_OVERHEAD = (

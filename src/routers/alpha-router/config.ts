@@ -17,8 +17,10 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
     case ChainId.WORLDCHAIN:
     case ChainId.UNICHAIN_SEPOLIA:
     case ChainId.MONAD_TESTNET:
+    case ChainId.MONAD:
     case ChainId.UNICHAIN:
     case ChainId.SONEIUM:
+    case ChainId.XLAYER:
       return {
         v2PoolSelection: {
           topN: 3,
@@ -48,6 +50,9 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
         minSplits: 1,
         maxSplits: 7,
         distributionPercent: 10,
+        ...(chainId === ChainId.BASE_SEPOLIA
+          ? { tokenizeRoutePercent: 5, maxTokenizeQuoteLossBps: 50 }
+          : {}),
         forceCrossProtocol: false,
       };
     // Arbitrum calls have lower gas limits and tend to timeout more, which causes us to reduce the multicall
@@ -111,10 +116,10 @@ export const DEFAULT_ROUTING_CONFIG_BY_CHAIN = (
           topNWithBaseToken: 5,
         },
         v4PoolSelection: {
-          topN: 2, // Kittycorn: increase default from 2 to 10
+          topN: 2,
           topNDirectSwaps: 2,
           topNTokenInOut: 3,
-          topNSecondHop: 1, // Kittycorn: increase default from 1 to 5
+          topNSecondHop: 1,
           topNWithEachBaseToken: 3,
           topNWithBaseToken: 5,
         },

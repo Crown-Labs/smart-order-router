@@ -1,3 +1,4 @@
+import { getWrappedNativeCurrency } from '../../util/chains';
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
 
@@ -7,6 +8,7 @@ import {
   DAI_AVAX,
   DAI_BNB,
   DAI_MAINNET,
+  DAI_UNICHAIN,
   ITokenProvider,
   USDB_BLAST,
   USDCE_ZKSYNC,
@@ -15,9 +17,12 @@ import {
   USDC_BASE_SEPOLIA,
   USDC_BNB,
   USDC_MAINNET,
+  USDC_MONAD,
   USDC_SONEIUM,
+  USDC_UNICHAIN,
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
+  USDC_XLAYER,
   USDC_ZKSYNC,
   USDT_BNB,
   USDT_MAINNET,
@@ -31,7 +36,7 @@ import {
 import { WRAPPED_NATIVE_CURRENCY } from '../../util/chains';
 
 type ChainTokenList = {
-  readonly [chainId in ChainId]: Token[];
+  readonly [chainId in ChainId]?: Token[];
 };
 
 export const BASES_TO_CHECK_TRADES_AGAINST = (
@@ -63,10 +68,12 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
     ],
     [ChainId.POLYGON]: [WMATIC_POLYGON],
     [ChainId.POLYGON_MUMBAI]: [WMATIC_POLYGON_MUMBAI],
-    [ChainId.CELO]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO]],
-    [ChainId.CELO_ALFAJORES]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO_ALFAJORES]],
-    [ChainId.GNOSIS]: [WRAPPED_NATIVE_CURRENCY[ChainId.GNOSIS]],
-    [ChainId.MOONBEAM]: [WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM]],
+    [ChainId.CELO]: [WRAPPED_NATIVE_CURRENCY[ChainId.CELO]!],
+    [ChainId.CELO_ALFAJORES]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.CELO_ALFAJORES]!,
+    ],
+    [ChainId.GNOSIS]: [WRAPPED_NATIVE_CURRENCY[ChainId.GNOSIS]!],
+    [ChainId.MOONBEAM]: [WRAPPED_NATIVE_CURRENCY[ChainId.MOONBEAM]!],
     [ChainId.BNB]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.BNB]!,
       BUSD_BNB,
@@ -101,11 +108,16 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN_SEPOLIA]!,
       USDC_UNICHAIN_SEPOLIA,
     ],
-    [ChainId.UNICHAIN]: [],
+    [ChainId.UNICHAIN]: [
+      WRAPPED_NATIVE_CURRENCY[ChainId.UNICHAIN]!,
+      DAI_UNICHAIN,
+      USDC_UNICHAIN,
+    ],
     [ChainId.MONAD_TESTNET]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.MONAD_TESTNET]!,
       USDT_MONAD_TESTNET,
     ],
+    [ChainId.MONAD]: [WRAPPED_NATIVE_CURRENCY[ChainId.MONAD]!, USDC_MONAD],
     [ChainId.BASE_SEPOLIA]: [
       WRAPPED_NATIVE_CURRENCY[ChainId.BASE_SEPOLIA]!,
       USDC_BASE_SEPOLIA,
@@ -114,6 +126,7 @@ export const BASES_TO_CHECK_TRADES_AGAINST = (
       WRAPPED_NATIVE_CURRENCY[ChainId.SONEIUM]!,
       USDC_SONEIUM,
     ],
+    [ChainId.XLAYER]: [WRAPPED_NATIVE_CURRENCY[ChainId.XLAYER]!, USDC_XLAYER],
   };
 };
 
@@ -213,7 +226,7 @@ export const CUSTOM_BASES = async (
         tokenProvider,
         ChainId.MAINNET,
         '0xd46ba6d942050d489dbd938a2c909a5d5039a161',
-        WRAPPED_NATIVE_CURRENCY[1]!.address
+        getWrappedNativeCurrency(1)!.address
       )),
     },
   };

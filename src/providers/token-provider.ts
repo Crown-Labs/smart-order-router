@@ -3,9 +3,10 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { parseBytes32String } from '@ethersproject/strings';
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
 import _ from 'lodash';
+import { getWrappedNativeCurrency } from '../util/chains';
 
 import { IERC20Metadata__factory } from '../types/v3/factories/IERC20Metadata__factory';
-import { log, WRAPPED_NATIVE_CURRENCY } from '../util';
+import { log } from '../util';
 
 import { IMulticallProvider, Result } from './multicall-provider';
 import { ProviderConfig } from './provider';
@@ -65,6 +66,13 @@ export const DAI_MAINNET = new Token(
   'DAI',
   'Dai Stablecoin'
 );
+export const EGGS_MAINNET = new Token(
+  ChainId.MAINNET,
+  '0x2e516BA5Bf3b7eE47fb99B09eaDb60BDE80a82e0',
+  18,
+  'EGGS',
+  'EGGS'
+);
 export const AMPL_MAINNET = new Token(
   ChainId.MAINNET,
   '0xD46bA6D942050d489DBd938a2C909A5d5039A161',
@@ -111,27 +119,12 @@ export const WSTETH_MAINNET = new Token(
   'Wrapped liquid staked Ether'
 );
 
-// Using Aave deploy token
 export const USDC_SEPOLIA = new Token(
   ChainId.SEPOLIA,
-  '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
-  6,
+  '0x6f14C02Fc1F78322cFd7d707aB90f18baD3B54f5',
+  18,
   'USDC',
   'USDC Token'
-);
-export const USDT_SEPOLIA = new Token(
-  ChainId.SEPOLIA,
-  '0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0',
-  6,
-  'USDT',
-  'USDT Token'
-);
-export const WBTC_SEPOLIA = new Token(
-  ChainId.SEPOLIA,
-  '0x29f2D40B0605204364af54EC677bD022dA425d03',
-  8,
-  'WBTC',
-  'WBTC Token'
 );
 export const USDC_NATIVE_SEPOLIA = new Token(
   ChainId.SEPOLIA,
@@ -140,7 +133,6 @@ export const USDC_NATIVE_SEPOLIA = new Token(
   'USDC',
   'USDC Token'
 );
-
 export const DAI_SEPOLIA = new Token(
   ChainId.SEPOLIA,
   '0x7AF17A48a6336F7dc1beF9D485139f7B6f4FB5C8',
@@ -757,6 +749,22 @@ export const USDT_MONAD_TESTNET = new Token(
   'USDT'
 );
 
+export const USDC_MONAD = new Token(
+  ChainId.MONAD,
+  '0x754704Bc059F8C67012fEd69BC8A327a5aafb603',
+  6,
+  'USDC',
+  'USDC'
+);
+
+export const USDC_XLAYER = new Token(
+  ChainId.XLAYER,
+  '0x74b7F16337b8972027F6196A17a631aC6dE26d22',
+  6,
+  'USDC',
+  'USDC'
+);
+
 export const WLD_WORLDCHAIN = new Token(
   ChainId.WORLDCHAIN,
   '0x2cFc85d8E48F8EAB294be644d9E25C3030863003',
@@ -1125,13 +1133,17 @@ export const USDC_ON = (chainId: ChainId): Token => {
       return USDC_UNICHAIN;
     case ChainId.SONEIUM:
       return USDC_SONEIUM;
+    case ChainId.MONAD:
+      return USDC_MONAD;
+    case ChainId.XLAYER:
+      return USDC_XLAYER;
     default:
       throw new Error(`Chain id: ${chainId} not supported`);
   }
 };
 
 export const WNATIVE_ON = (chainId: ChainId): Token => {
-  return WRAPPED_NATIVE_CURRENCY[chainId];
+  return getWrappedNativeCurrency(chainId);
 };
 
 export const V4_SEPOLIA_TEST_A = new Token(

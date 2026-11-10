@@ -27,10 +27,13 @@ export const SUPPORTED_CHAINS: ChainId[] = [
   ChainId.ZORA,
   ChainId.ZKSYNC,
   ChainId.WORLDCHAIN,
+  ChainId.UNICHAIN,
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.MONAD_TESTNET,
+  ChainId.MONAD,
   ChainId.BASE_SEPOLIA,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
   // Gnosis and Moonbeam don't yet have contracts deployed yet
 ];
 
@@ -44,12 +47,15 @@ export const V2_SUPPORTED = [
   ChainId.BNB,
   ChainId.AVALANCHE,
   ChainId.MONAD_TESTNET,
+  ChainId.MONAD,
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
 ];
 
 export const V4_SUPPORTED = [
+  ChainId.BASE_SEPOLIA,
   ChainId.MAINNET,
   ChainId.SEPOLIA,
   ChainId.ARBITRUM_ONE,
@@ -59,9 +65,12 @@ export const V4_SUPPORTED = [
   ChainId.BNB,
   ChainId.AVALANCHE,
   ChainId.MONAD_TESTNET,
+  ChainId.MONAD,
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
+  ChainId.CELO,
+  ChainId.XLAYER,
 ];
 
 export const MIXED_SUPPORTED = [
@@ -70,6 +79,7 @@ export const MIXED_SUPPORTED = [
   ChainId.GOERLI,
   ChainId.BASE,
   ChainId.UNICHAIN,
+  // ChainId.MONAD, // ROUTE-760: enable this when monad is supported by the router
   ChainId.BASE,
   ChainId.ARBITRUM_ONE,
   ChainId.POLYGON,
@@ -79,7 +89,11 @@ export const MIXED_SUPPORTED = [
   ChainId.WORLDCHAIN,
   ChainId.ZORA,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
+  ChainId.MONAD,
 ];
+
+export const MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED = [ChainId.BASE];
 
 export const HAS_L1_FEE = [
   ChainId.OPTIMISM,
@@ -95,8 +109,10 @@ export const HAS_L1_FEE = [
   ChainId.WORLDCHAIN,
   ChainId.UNICHAIN_SEPOLIA,
   ChainId.MONAD_TESTNET,
+  ChainId.MONAD,
   ChainId.UNICHAIN,
   ChainId.SONEIUM,
+  ChainId.XLAYER,
 ];
 
 export const NETWORKS_WITH_SAME_UNISWAP_ADDRESSES = [
@@ -162,10 +178,14 @@ export const ID_TO_CHAIN_ID = (id: number): ChainId => {
       return ChainId.UNICHAIN_SEPOLIA;
     case 10143:
       return ChainId.MONAD_TESTNET;
+    case 143:
+      return ChainId.MONAD;
     case 130:
       return ChainId.UNICHAIN;
     case 1868:
       return ChainId.SONEIUM;
+    case 196:
+      return ChainId.XLAYER;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -200,6 +220,8 @@ export enum ChainName {
   UNICHAIN = 'unichain-mainnet',
   MONAD_TESTNET = 'monad-testnet',
   SONEIUM = 'soneium-mainnet',
+  MONAD = 'monad-mainnet',
+  XLAYER = 'xlayer-mainnet',
 }
 
 export enum NativeCurrencyName {
@@ -212,6 +234,7 @@ export enum NativeCurrencyName {
   BNB = 'BNB',
   AVALANCHE = 'AVAX',
   MONAD = 'MON',
+  XLAYER = 'OKB',
 }
 
 export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
@@ -310,6 +333,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
     'MONAD',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
+  [ChainId.MONAD]: [
+    'MON',
+    'MONAD',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
   [ChainId.BASE_SEPOLIA]: [
     'ETH',
     'ETHER',
@@ -323,6 +351,11 @@ export const NATIVE_NAMES_BY_ID: { [chainId: number]: string[] } = {
   [ChainId.SONEIUM]: [
     'ETH',
     'ETHER',
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  ],
+  [ChainId.XLAYER]: [
+    'OKB',
+    'OKB',
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   ],
 };
@@ -352,9 +385,11 @@ export const NATIVE_CURRENCY: { [chainId: number]: NativeCurrencyName } = {
   [ChainId.WORLDCHAIN]: NativeCurrencyName.ETHER,
   [ChainId.UNICHAIN_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.MONAD_TESTNET]: NativeCurrencyName.MONAD,
+  [ChainId.MONAD]: NativeCurrencyName.MONAD,
   [ChainId.BASE_SEPOLIA]: NativeCurrencyName.ETHER,
   [ChainId.UNICHAIN]: NativeCurrencyName.ETHER,
   [ChainId.SONEIUM]: NativeCurrencyName.ETHER,
+  [ChainId.XLAYER]: NativeCurrencyName.XLAYER,
 };
 
 export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
@@ -413,8 +448,12 @@ export const ID_TO_NETWORK_NAME = (id: number): ChainName => {
       return ChainName.UNICHAIN;
     case 10143:
       return ChainName.MONAD_TESTNET;
+    case 143:
+      return ChainName.MONAD;
     case 1868:
       return ChainName.SONEIUM;
+    case 196:
+      return ChainName.XLAYER;
     default:
       throw new Error(`Unknown chain id: ${id}`);
   }
@@ -470,18 +509,22 @@ export const ID_TO_PROVIDER = (id: ChainId): string => {
       return process.env.JSON_RPC_PROVIDER_UNICHAIN_SEPOLIA!;
     case ChainId.MONAD_TESTNET:
       return process.env.JSON_RPC_PROVIDER_MONAD_TESTNET!;
+    case ChainId.MONAD:
+      return process.env.JSON_RPC_PROVIDER_MONAD!;
     case ChainId.BASE_SEPOLIA:
       return process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA!;
     case ChainId.UNICHAIN:
       return process.env.JSON_RPC_PROVIDER_UNICHAIN!;
     case ChainId.SONEIUM:
       return process.env.JSON_RPC_PROVIDER_SONEIUM!;
+    case ChainId.XLAYER:
+      return process.env.JSON_RPC_PROVIDER_XLAYER!;
     default:
       throw new Error(`Chain id: ${id} not supported`);
   }
 };
 
-export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
+export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]?: Token } = {
   [ChainId.MAINNET]: new Token(
     1,
     '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
@@ -498,7 +541,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.SEPOLIA]: new Token(
     11155111,
-    '0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c',
+    '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
     18,
     'WETH',
     'Wrapped Ether'
@@ -547,7 +590,7 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
   ),
   [ChainId.ARBITRUM_SEPOLIA]: new Token(
     ChainId.ARBITRUM_SEPOLIA,
-    '0xc556bAe1e86B2aE9c22eA5E036b07E55E7596074',
+    '0x980B62Da83eFf3D4576C647993b0c1D7faf17c73',
     18,
     'WETH',
     'Wrapped Ether'
@@ -680,6 +723,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     'WMON',
     'Wrapped Monad'
   ),
+  [ChainId.MONAD]: new Token(
+    ChainId.MONAD,
+    '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A',
+    18,
+    'WMON',
+    'Wrapped Monad'
+  ),
   [ChainId.BASE_SEPOLIA]: new Token(
     ChainId.BASE_SEPOLIA,
     '0x4200000000000000000000000000000000000006',
@@ -693,6 +743,13 @@ export const WRAPPED_NATIVE_CURRENCY: { [chainId in ChainId]: Token } = {
     18,
     'WETH',
     'Wrapped Ether'
+  ),
+  [ChainId.XLAYER]: new Token(
+    ChainId.XLAYER,
+    '0xe538905cf8410324e03A5A23C1c177a474D59b2b',
+    18,
+    'WOKB',
+    'Wrapped OKB'
   ),
 };
 
@@ -709,7 +766,7 @@ class MaticNativeCurrency extends NativeCurrency {
 
   get wrapped(): Token {
     if (!isMatic(this.chainId)) throw new Error('Not matic');
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
     if (nativeCurrency) {
       return nativeCurrency;
     }
@@ -735,7 +792,7 @@ class CeloNativeCurrency extends NativeCurrency {
 
   get wrapped(): Token {
     if (!isCelo(this.chainId)) throw new Error('Not celo');
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
     if (nativeCurrency) {
       return nativeCurrency;
     }
@@ -759,7 +816,7 @@ class GnosisNativeCurrency extends NativeCurrency {
 
   get wrapped(): Token {
     if (!isGnosis(this.chainId)) throw new Error('Not gnosis');
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
     if (nativeCurrency) {
       return nativeCurrency;
     }
@@ -783,7 +840,7 @@ class BnbNativeCurrency extends NativeCurrency {
 
   get wrapped(): Token {
     if (!isBnb(this.chainId)) throw new Error('Not bnb');
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
     if (nativeCurrency) {
       return nativeCurrency;
     }
@@ -807,7 +864,7 @@ class MoonbeamNativeCurrency extends NativeCurrency {
 
   get wrapped(): Token {
     if (!isMoonbeam(this.chainId)) throw new Error('Not moonbeam');
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
     if (nativeCurrency) {
       return nativeCurrency;
     }
@@ -831,7 +888,7 @@ class AvalancheNativeCurrency extends NativeCurrency {
 
   get wrapped(): Token {
     if (!isAvax(this.chainId)) throw new Error('Not avalanche');
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
     if (nativeCurrency) {
       return nativeCurrency;
     }
@@ -844,10 +901,58 @@ class AvalancheNativeCurrency extends NativeCurrency {
   }
 }
 
+function isMonad(chainId: number): chainId is ChainId.MONAD {
+  return chainId === ChainId.MONAD;
+}
+
+class MonadNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isMonad(this.chainId)) throw new Error('Not monad');
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isMonad(chainId)) throw new Error('Not monad');
+    super(chainId, 18, 'MON', 'Monad');
+  }
+}
+
+function isXLayer(chainId: number): chainId is ChainId.XLAYER {
+  return chainId === ChainId.XLAYER;
+}
+
+class XLayerNativeCurrency extends NativeCurrency {
+  equals(other: Currency): boolean {
+    return other.isNative && other.chainId === this.chainId;
+  }
+
+  get wrapped(): Token {
+    if (!isXLayer(this.chainId)) throw new Error('Not xlayer');
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
+    if (nativeCurrency) {
+      return nativeCurrency;
+    }
+    throw new Error(`Does not support this chain ${this.chainId}`);
+  }
+
+  public constructor(chainId: number) {
+    if (!isXLayer(chainId)) throw new Error('Not xlayer');
+    super(chainId, 18, 'OKB', 'OKB');
+  }
+}
+
 export class ExtendedEther extends Ether {
   public get wrapped(): Token {
     if (this.chainId in WRAPPED_NATIVE_CURRENCY) {
-      return WRAPPED_NATIVE_CURRENCY[this.chainId as ChainId];
+      return getWrappedNativeCurrency(this.chainId as ChainId);
     }
     throw new Error('Unsupported chain ID');
   }
@@ -881,9 +986,21 @@ export function nativeOnChain(chainId: number): NativeCurrency {
     cachedNativeCurrency[chainId] = new BnbNativeCurrency(chainId);
   } else if (isAvax(chainId)) {
     cachedNativeCurrency[chainId] = new AvalancheNativeCurrency(chainId);
+  } else if (isMonad(chainId)) {
+    cachedNativeCurrency[chainId] = new MonadNativeCurrency(chainId);
+  } else if (isXLayer(chainId)) {
+    cachedNativeCurrency[chainId] = new XLayerNativeCurrency(chainId);
   } else {
     cachedNativeCurrency[chainId] = ExtendedEther.onChain(chainId);
   }
 
   return cachedNativeCurrency[chainId]!;
+}
+
+/** Return the configured wrapped native token; fail clearly for SDK chains SOR does not support. */
+export function getWrappedNativeCurrency(chainId: number): Token {
+  const token = WRAPPED_NATIVE_CURRENCY[chainId as ChainId];
+  if (!token)
+    throw new Error(`Unsupported wrapped native currency: ${chainId}`);
+  return token;
 }

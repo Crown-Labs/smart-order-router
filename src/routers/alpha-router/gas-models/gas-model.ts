@@ -6,6 +6,7 @@ import {
 } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool } from '@kittycorn-labs/v3-sdk';
+import { getWrappedNativeCurrency } from '../../../util/chains';
 
 import { ProviderConfig } from '../../../providers/provider';
 import {
@@ -37,6 +38,7 @@ import {
   USDC_ETHEREUM_GNOSIS,
   USDC_GOERLI,
   USDC_MAINNET,
+  USDC_MONAD,
   USDC_MOONBEAM,
   USDC_NATIVE_ARBITRUM,
   USDC_NATIVE_AVAX,
@@ -54,6 +56,7 @@ import {
   USDC_UNICHAIN_SEPOLIA,
   USDC_WORLDCHAIN,
   USDC_WORMHOLE_CELO,
+  USDC_XLAYER,
   USDC_ZKSYNC,
   USDC_ZORA,
   USDT_ARBITRUM,
@@ -64,7 +67,6 @@ import {
   USDT_OPTIMISM,
   USDT_OPTIMISM_GOERLI,
   USDT_OPTIMISM_SEPOLIA,
-  USDT_SEPOLIA,
   WBTC_GOERLI,
 } from '../../../providers/token-provider';
 import { IV2PoolProvider } from '../../../providers/v2/pool-provider';
@@ -72,7 +74,6 @@ import {
   ArbitrumGasData,
   IL2GasDataProvider,
 } from '../../../providers/v3/gas-data-provider';
-import { WRAPPED_NATIVE_CURRENCY } from '../../../util';
 import { CurrencyAmount } from '../../../util/amounts';
 import {
   MixedRouteWithValidQuote,
@@ -112,7 +113,7 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.ARBITRUM_GOERLI]: [USDC_ARBITRUM_GOERLI],
   [ChainId.ARBITRUM_SEPOLIA]: [USDC_ARBITRUM_SEPOLIA],
   [ChainId.GOERLI]: [DAI_GOERLI, USDC_GOERLI, USDT_GOERLI, WBTC_GOERLI],
-  [ChainId.SEPOLIA]: [DAI_SEPOLIA, USDC_SEPOLIA, USDT_SEPOLIA],
+  [ChainId.SEPOLIA]: [USDC_SEPOLIA, DAI_SEPOLIA],
   [ChainId.POLYGON]: [USDC_POLYGON, USDC_NATIVE_POLYGON],
   [ChainId.POLYGON_MUMBAI]: [DAI_POLYGON_MUMBAI],
   [ChainId.CELO]: [CUSD_CELO, USDC_CELO, USDC_NATIVE_CELO, USDC_WORMHOLE_CELO],
@@ -133,9 +134,11 @@ export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
   [ChainId.WORLDCHAIN]: [USDC_WORLDCHAIN],
   [ChainId.UNICHAIN_SEPOLIA]: [USDC_UNICHAIN_SEPOLIA],
   [ChainId.MONAD_TESTNET]: [USDT_MONAD_TESTNET],
+  [ChainId.MONAD]: [USDC_MONAD],
   [ChainId.BASE_SEPOLIA]: [USDC_BASE_SEPOLIA],
   [ChainId.UNICHAIN]: [DAI_UNICHAIN, USDC_UNICHAIN],
   [ChainId.SONEIUM]: [USDC_SONEIUM],
+  [ChainId.XLAYER]: [USDC_XLAYER],
 };
 
 export type L1ToL2GasCosts = {
@@ -285,7 +288,7 @@ export const getQuoteThroughNativePool = (
   nativeTokenAmount: CurrencyAmountRaw<Token>,
   nativeTokenPool: Pool | Pair
 ): CurrencyAmount => {
-  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+  const nativeCurrency = getWrappedNativeCurrency(chainId);
   const isToken0 = nativeTokenPool.token0.equals(nativeCurrency);
   // returns mid price in terms of the native currency (the ratio of token/nativeToken)
   const nativeTokenPrice = isToken0

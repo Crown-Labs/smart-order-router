@@ -1,8 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId } from '@kittycorn-labs/sdk-core';
+import { getWrappedNativeCurrency } from '../../../../util/chains';
 
-import { CurrencyAmount, WRAPPED_NATIVE_CURRENCY } from '../../../../util';
+import { CurrencyAmount } from '../../../../util';
 import { V4RouteWithValidQuote } from '../../entities';
 import {
   BuildOnChainGasModelFactoryType,
@@ -60,7 +61,7 @@ export class V4HeuristicGasModelFactory
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
-    const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    const wrappedCurrency = getWrappedNativeCurrency(chainId)!;
 
     const totalGasCostNativeCurrency = CurrencyAmount.fromRawAmount(
       wrappedCurrency,

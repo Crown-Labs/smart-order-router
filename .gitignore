@@ -12,4 +12,7 @@ types
 types/*
 .env
 cache/
+CLAUDE.md
 .DS_Store
+
+.packages/

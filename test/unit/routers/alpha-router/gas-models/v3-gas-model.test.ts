@@ -304,7 +304,7 @@ describe('v3 gas model tests', () => {
       gasModel: v3GasModel,
       route: new V3Route(
         [USDC_WETH_MEDIUM],
-        WRAPPED_NATIVE_CURRENCY[1],
+        WRAPPED_NATIVE_CURRENCY[1]!,
         USDC_MAINNET
       ),
       quoteToken: USDC_MAINNET,
@@ -378,9 +378,9 @@ describe('v3 gas model tests', () => {
       route: new V3Route(
         [USDC_WETH_MEDIUM],
         USDC_MAINNET,
-        WRAPPED_NATIVE_CURRENCY[1]
+        WRAPPED_NATIVE_CURRENCY[1]!
       ),
-      quoteToken: WRAPPED_NATIVE_CURRENCY[1],
+      quoteToken: WRAPPED_NATIVE_CURRENCY[1]!,
       initializedTicksCrossedList: [1],
     });
 

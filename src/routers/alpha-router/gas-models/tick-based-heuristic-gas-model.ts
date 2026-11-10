@@ -2,8 +2,9 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider } from '@ethersproject/providers';
 import { ChainId, Percent, Price } from '@kittycorn-labs/sdk-core';
 import { Pool } from '@kittycorn-labs/v3-sdk';
+import { getWrappedNativeCurrency } from '../../../util/chains';
 
-import { CurrencyAmount, log, WRAPPED_NATIVE_CURRENCY } from '../../../util';
+import { CurrencyAmount, log } from '../../../util';
 import { calculateL1GasFeesHelper } from '../../../util/gas-factory-helpers';
 import { V3RouteWithValidQuote, V4RouteWithValidQuote } from '../entities';
 
@@ -70,7 +71,7 @@ export abstract class TickBasedHeuristicGasModelFactory<
       );
     };
 
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    const nativeCurrency = getWrappedNativeCurrency(chainId)!;
     let nativeAmountPool: Pool | null = null;
     if (!amountToken.equals(nativeCurrency)) {
       nativeAmountPool = pools.nativeAndAmountTokenV3Pool;
@@ -314,7 +315,7 @@ export abstract class TickBasedHeuristicGasModelFactory<
 
     const baseGasCostWei = gasPriceWei.mul(baseGasUse);
 
-    const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+    const wrappedCurrency = getWrappedNativeCurrency(chainId)!;
 
     const totalGasCostNativeCurrency = CurrencyAmount.fromRawAmount(
       wrappedCurrency,

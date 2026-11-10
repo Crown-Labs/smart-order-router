@@ -29,7 +29,7 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
     providerConfig?: ProviderConfig
   ): Promise<V4SubgraphPool[]> {
     log.info('In static subgraph provider for V4');
-    const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId];
+    const bases = BASES_TO_CHECK_TRADES_AGAINST[this.chainId] ?? [];
 
     const basePairs: [Currency, Currency][] = _.flatMap(
       bases,
@@ -114,10 +114,16 @@ export class StaticV4SubgraphProvider implements IV4SubgraphProvider {
           hooks: hooks,
           liquidity: liquidity.toString(),
           token0: {
+            symbol: token0.symbol,
             id: getAddress(token0),
+            name: token0.name,
+            decimals: token0.decimals.toString(),
           },
           token1: {
+            symbol: token1.symbol,
             id: getAddress(token1),
+            name: token1.name,
+            decimals: token1.decimals.toString(),
           },
           // As a very rough proxy we just use liquidity for TVL.
           tvlETH: liquidityNumber,

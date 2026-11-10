@@ -12,6 +12,9 @@ import {
   TradeType,
 } from '@kittycorn-labs/sdk-core';
 
+import { AlphaRouterConfig } from '../../../routers';
+import { SwapOptions } from '../../../routers/router';
+
 import { CacheMode } from './model';
 import { CachedRoutes } from './model/cached-routes';
 
@@ -31,6 +34,9 @@ export abstract class IRouteCachingProvider {
    * @param tradeType
    * @param protocols
    * @param blockNumber
+   * @param optimistic
+   * @param alphaRouterConfig
+   * @param swapOptions
    */
   public readonly getCachedRoute = async (
     // Defined as a readonly member instead of a regular function to make it final.
@@ -40,7 +46,9 @@ export abstract class IRouteCachingProvider {
     tradeType: TradeType,
     protocols: Protocol[],
     blockNumber: number,
-    optimistic = false
+    optimistic = false,
+    alphaRouterConfig?: AlphaRouterConfig,
+    swapOptions?: SwapOptions
   ): Promise<CachedRoutes | undefined> => {
     if (
       (await this.getCacheMode(
@@ -61,7 +69,9 @@ export abstract class IRouteCachingProvider {
       tradeType,
       protocols,
       blockNumber,
-      optimistic
+      optimistic,
+      alphaRouterConfig,
+      swapOptions
     );
 
     return this.filterExpiredCachedRoutes(cachedRoute, blockNumber, optimistic);
@@ -94,6 +104,20 @@ export abstract class IRouteCachingProvider {
     );
 
     return this._setCachedRoute(cachedRoutes, amount);
+  };
+
+  /**
+   * Final implementation of the public `deleteCachedRoute` method.
+   * This method will delete the cached route from the cache.
+   *
+   * @public
+   * @readonly
+   * @param cachedRoutes the cached routes to delete
+   */
+  public readonly deleteCachedRoute = async (
+    cachedRoutes: CachedRoutes
+  ): Promise<boolean> => {
+    return this._deleteCachedRoute(cachedRoutes);
   };
 
   /**
@@ -156,6 +180,10 @@ export abstract class IRouteCachingProvider {
    * @param quoteCurrency
    * @param tradeType
    * @param protocols
+   * @param currentBlockNumber
+   * @param optimistic
+   * @param alphaRouterConfig
+   * @param swapOptions
    * @protected
    */
   protected abstract _getCachedRoute(
@@ -165,7 +193,9 @@ export abstract class IRouteCachingProvider {
     tradeType: TradeType,
     protocols: Protocol[],
     currentBlockNumber: number,
-    optimistic: boolean
+    optimistic: boolean,
+    alphaRouterConfig?: AlphaRouterConfig,
+    swapOptions?: SwapOptions
   ): Promise<CachedRoutes | undefined>;
 
   /**
@@ -194,4 +224,12 @@ export abstract class IRouteCachingProvider {
     cachedRoutes: CachedRoutes,
     amount: CurrencyAmount<Currency>
   ): Promise<number>;
+
+  /**
+   * Removes or invalidates a cached route from the cache.
+   * Must be implemented by subclasses.
+   */
+  protected abstract _deleteCachedRoute(
+    cachedRoutes: CachedRoutes
+  ): Promise<boolean>;
 }

@@ -1,6 +1,12 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import { BaseProvider, JsonRpcProvider } from '@ethersproject/providers';
-import { Protocol, SwapRouter, Trade, ZERO } from '@kittycorn-labs/router-sdk';
+import {
+  Protocol,
+  SwapRouter,
+  TPool as MixedPool,
+  Trade,
+  ZERO,
+} from '@kittycorn-labs/router-sdk';
 import {
   ChainId,
   Currency,
@@ -9,19 +15,23 @@ import {
   TradeType,
 } from '@kittycorn-labs/sdk-core';
 import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
+import { Pair as V2Pool } from '@kittycorn-labs/v2-sdk';
 import {
   Pool,
+  Pool as V3Pool,
   Position,
   SqrtPriceMath,
   TickMath,
 } from '@kittycorn-labs/v3-sdk';
-import { BASE_TOKENIZE_UNDERLYING } from '@kittycorn-labs/v4-sdk';
+import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
 import DEFAULT_TOKEN_LIST from '@uniswap/default-token-list';
 import { TokenList } from '@uniswap/token-lists';
 import retry from 'async-retry';
 import JSBI from 'jsbi';
 import _ from 'lodash';
 import NodeCache from 'node-cache';
+import { getWrappedNativeCurrency } from '../../util/chains';
+import { KITTYCORN_BASE_SEPOLIA } from '../../util/tokenize';
 
 import {
   CachedRoutes,
@@ -46,6 +56,7 @@ import {
   NodeJSCache,
   OnChainGasPriceProvider,
   OnChainQuoteProvider,
+  SimulationStatus,
   Simulator,
   StaticV2SubgraphProvider,
   StaticV3SubgraphProvider,
@@ -102,11 +113,12 @@ import {
   getAddress,
   getAddressLowerCase,
   getApplicableV4FeesTickspacingsHooks,
+  HooksOptions,
+  MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED,
   MIXED_SUPPORTED,
   shouldWipeoutCachedRoutes,
   SWAP_ROUTER_02_ADDRESSES,
   V4_SUPPORTED,
-  WRAPPED_NATIVE_CURRENCY,
 } from '../../util';
 import { CurrencyAmount } from '../../util/amounts';
 import {
@@ -141,6 +153,10 @@ import {
 import { serializeRouteIds } from '../../util/serializeRouteIds';
 import { UNSUPPORTED_TOKENS } from '../../util/unsupported-tokens';
 import {
+  cloneMixedRouteWithNewPools,
+  cloneV2RouteWithNewPools,
+  cloneV3RouteWithNewPools,
+  cloneV4RouteWithNewPools,
   IRouter,
   ISwapToRatio,
   MethodParameters,
@@ -334,6 +350,11 @@ export type AlphaRouterParams = {
   mixedSupported?: ChainId[];
 
   /**
+   * All the supported mixed cross-liquidity high v3 tvl pools against low-to-mid v4 pools chains configuration
+   */
+  mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
+
+  /**
    * The v4 pool params to be used for the v4 pool provider.
    * fee tiers, tickspacings, and hook addresses
    */
@@ -344,6 +365,12 @@ export type AlphaRouterParams = {
    * Because a wrong fix might impact prod success rate and/or latency.
    */
   cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
+
+  /**
+   * All the chains that have the cache invalidation enabled
+   * https://linear.app/uniswap/issue/ROUTE-467/tenderly-simulation-during-caching-lambda
+   */
+  deleteCacheEnabledChains?: ChainId[];
 };
 
 export class MapWithLowerCaseKey<V> extends Map<string, V> {
@@ -480,6 +507,10 @@ export type AlphaRouterConfig = {
    * 40% of input => Route 3
    */
   distributionPercent: number;
+  /** Minimum swap percentage routed through a real Tokenize pool; 0 disables this policy. */
+  tokenizeRoutePercent?: number;
+  /** Maximum degradation of the total raw quote versus best price, in basis points. */
+  maxTokenizeQuoteLossBps?: number;
   /**
    * Flag to indicate whether to use the cached routes or not.
    * By default, the cached routes will be used.
@@ -533,6 +564,32 @@ export type AlphaRouterConfig = {
    * hashed router ids of the cached route, if the online routing lambda uses the cached route to serve the quote
    */
   cachedRoutesRouteIds?: string;
+  /**
+   * enable mixed route with UR1_2 version backward compatibility issue
+   */
+  enableMixedRouteWithUR1_2?: boolean;
+  /**
+   * enable debug mode for async routing lambda
+   */
+  enableDebug?: boolean;
+  /**
+   * pass in hooks options for hooks routing toggles from the frontend
+   */
+  hooksOptions?: HooksOptions;
+  /**
+   * sync call request id passed from the upstream (TAPI)
+   */
+  requestId?: string;
+  /**
+   * async call request id passed from sync routing lambda
+   */
+  asyncRequestId?: string;
+  /**
+   * pools to manually route through
+   * couple use cases for this, the top one is to route through hooked pool(s)
+   * Note this can only work when cached routes are not hit
+   */
+  poolsToManuallyRouteThrough?: string[];
 };
 
 export class AlphaRouter
@@ -572,9 +629,11 @@ export class AlphaRouter
   protected v2Supported?: ChainId[];
   protected v4Supported?: ChainId[];
   protected mixedSupported?: ChainId[];
+  protected mixedCrossLiquidityV3AgainstV4Supported?: ChainId[];
   protected v4PoolParams?: Array<[number, number, string]>;
   protected cachedRoutesCacheInvalidationFixRolloutPercentage?: number;
   protected shouldEnableMixedRouteEthWeth?: boolean;
+  protected deleteCacheEnabledChains?: ChainId[];
 
   constructor({
     chainId,
@@ -605,8 +664,10 @@ export class AlphaRouter
     v2Supported,
     v4Supported,
     mixedSupported,
+    mixedCrossLiquidityV3AgainstV4Supported,
     v4PoolParams,
     cachedRoutesCacheInvalidationFixRolloutPercentage,
+    deleteCacheEnabledChains,
   }: AlphaRouterParams) {
     this.chainId = chainId;
     this.provider = provider;
@@ -683,9 +744,12 @@ export class AlphaRouter
         case ChainId.WORLDCHAIN:
         case ChainId.UNICHAIN_SEPOLIA:
         case ChainId.MONAD_TESTNET:
+        case ChainId.MONAD:
         case ChainId.BASE_SEPOLIA:
+        case ChainId.UNICHAIN:
         case ChainId.BASE_GOERLI:
         case ChainId.SONEIUM:
+        case ChainId.XLAYER:
           this.onChainQuoteProvider = new OnChainQuoteProvider(
             chainId,
             provider,
@@ -956,6 +1020,13 @@ export class AlphaRouter
 
     this.v4PoolParams =
       v4PoolParams ?? getApplicableV4FeesTickspacingsHooks(chainId);
+    if (!v4SubgraphProvider && chainId === KITTYCORN_BASE_SEPOLIA.chainId) {
+      v4SubgraphProvider = new StaticV4SubgraphProvider(
+        chainId,
+        this.v4PoolProvider,
+        this.v4PoolParams
+      );
+    }
     if (v4SubgraphProvider) {
       this.v4SubgraphProvider = v4SubgraphProvider;
     } else {
@@ -1073,9 +1144,15 @@ export class AlphaRouter
     this.v2Supported = v2Supported ?? V2_SUPPORTED;
     this.v4Supported = v4Supported ?? V4_SUPPORTED;
     this.mixedSupported = mixedSupported ?? MIXED_SUPPORTED;
+    this.mixedCrossLiquidityV3AgainstV4Supported =
+      mixedCrossLiquidityV3AgainstV4Supported ??
+      MIXED_CROSS_LIQUIDITY_V3_AGAINST_V4_SUPPORTED;
 
     this.cachedRoutesCacheInvalidationFixRolloutPercentage =
       cachedRoutesCacheInvalidationFixRolloutPercentage;
+
+    // https://linear.app/uniswap/issue/ROUTE-467/tenderly-simulation-during-caching-lambda
+    this.deleteCacheEnabledChains = deleteCacheEnabledChains;
   }
 
   public async routeToRatio(
@@ -1453,12 +1530,12 @@ export class AlphaRouter
     // For legacy systems (SWAP_ROUTER_02) or missing swapConfig, follow UniversalRouterVersion.V1_2 logic.
     const availableProtocolsSet = new Set(Object.values(Protocol));
     const requestedProtocolsSet = new Set(protocols);
-    if (
+    const swapRouter =
       !swapConfig ||
       swapConfig.type === SwapType.SWAP_ROUTER_02 ||
       (swapConfig.type === SwapType.UNIVERSAL_ROUTER &&
-        swapConfig.version === UniversalRouterVersion.V1_2)
-    ) {
+        swapConfig.version === UniversalRouterVersion.V1_2);
+    if (swapRouter) {
       availableProtocolsSet.delete(Protocol.V4);
       if (requestedProtocolsSet.has(Protocol.V4)) {
         requestedProtocolsSet.delete(Protocol.V4);
@@ -1469,6 +1546,17 @@ export class AlphaRouter
       [...availableProtocolsSet].every((protocol) =>
         requestedProtocolsSet.has(protocol)
       );
+
+    // If the requested protocols do not match the enabled protocols, we need to set the hooks options to NO_HOOKS.
+    if (!requestedProtocolsSet.has(Protocol.V4)) {
+      routingConfig.hooksOptions = HooksOptions.NO_HOOKS;
+    }
+
+    // If hooksOptions not specified and it's not a swapRouter (i.e. Universal Router it is),
+    // we should also set it to HOOKS_INCLUSIVE, as this is default behavior even without hooksOptions.
+    if (!routingConfig.hooksOptions) {
+      routingConfig.hooksOptions = HooksOptions.HOOKS_INCLUSIVE;
+    }
 
     log.debug('UniversalRouterVersion_CacheGate_Check', {
       availableProtocolsSet: Array.from(availableProtocolsSet),
@@ -1484,7 +1572,11 @@ export class AlphaRouter
     if (
       routingConfig.useCachedRoutes &&
       cacheMode !== CacheMode.Darkmode &&
-      AlphaRouter.isAllowedToEnterCachedRoutes(routingConfig.intent)
+      AlphaRouter.isAllowedToEnterCachedRoutes(
+        routingConfig.intent,
+        routingConfig.hooksOptions,
+        swapRouter
+      )
     ) {
       if (enabledAndRequestedProtocolsMatch) {
         if (
@@ -1503,7 +1595,9 @@ export class AlphaRouter
                 tradeType,
                 protocols,
                 await blockNumber,
-                routingConfig.optimisticCachedRoutes
+                routingConfig.optimisticCachedRoutes,
+                routingConfig,
+                swapConfig
               ),
               this.routeCachingProvider?.getCachedRoute(
                 this.chainId,
@@ -1512,7 +1606,9 @@ export class AlphaRouter
                 tradeType,
                 [Protocol.V4],
                 await blockNumber,
-                routingConfig.optimisticCachedRoutes
+                routingConfig.optimisticCachedRoutes,
+                routingConfig,
+                swapConfig
               ),
             ]);
 
@@ -1550,7 +1646,9 @@ export class AlphaRouter
             tradeType,
             protocols,
             await blockNumber,
-            routingConfig.optimisticCachedRoutes
+            routingConfig.optimisticCachedRoutes,
+            routingConfig,
+            swapConfig
           );
         }
       }
@@ -1672,6 +1770,24 @@ export class AlphaRouter
     let swapRouteRaw: BestSwapRoute | null;
     let hitsCachedRoute = false;
     if (cacheMode === CacheMode.Livemode && swapRouteFromCache) {
+      // offline lambda is never in cache mode
+      // refresh pools to avoid stale data
+      const beforeRefreshPools = Date.now();
+
+      await this.refreshPools(
+        swapRouteFromCache.routes,
+        routingConfig,
+        this.v2PoolProvider,
+        this.v3PoolProvider,
+        this.v4PoolProvider
+      );
+
+      metric.putMetric(
+        `Route_RefreshPools_Latency`,
+        Date.now() - beforeRefreshPools,
+        MetricLoggerUnit.Milliseconds
+      );
+
       log.info(
         `CacheMode is ${cacheMode}, and we are using swapRoute from cache`
       );
@@ -1985,55 +2101,6 @@ export class AlphaRouter
       quoteGasAndPortionAdjusted: quoteGasAndPortionAdjusted,
     };
 
-    // Kittycorn: replace pool id with 0x for Tokenize pool in swapRoute.route.pools
-    const tokenizes = BASE_TOKENIZE_UNDERLYING[this.chainId]?.map((base) => {
-      return base.tokenize.address.toLocaleLowerCase();
-    });
-
-    const wethAddress =
-      WRAPPED_NATIVE_CURRENCY[this.chainId]?.address.toLocaleLowerCase() || '';
-
-    swapRoute.route.forEach((route) => {
-      if (route.route.protocol === Protocol.V4) {
-        const pools = (route.route as any).pools;
-        for (let i = 0; i < pools.length; i++) {
-          const pool = pools[i];
-          if (pool.poolId) {
-            const tokenize0 =
-              !(pool?.token0 as Token).isNative &&
-              tokenizes?.includes(
-                (pool?.token0 as Token).address.toLowerCase()
-              );
-            const tokenize1 =
-              !(pool?.token0 as Token).isNative &&
-              tokenizes?.includes(
-                (pool?.token1 as Token).address.toLowerCase()
-              );
-            const wrap =
-              (pool.token0 as Token).isNative &&
-              (pool.token1 as Token).address.toLowerCase() === wethAddress;
-            const unwrap =
-              (pool.token1 as Token).isNative &&
-              (pool.token0 as Token).address.toLowerCase() === wethAddress;
-
-            if (
-              (tokenize0 && !tokenize1) ||
-              (!tokenize0 && tokenize1) ||
-              wrap ||
-              unwrap
-            ) {
-              pools[i].poolId =
-                '0x0000000000000000000000000000000000000000000000000000000000000000';
-              pools[i].fee = 0;
-              pools[i].tickSpacing = 1;
-              pools[i].liquidity = 0;
-              pools[i].tickCurrent = 0;
-            }
-          }
-        }
-      }
-    });
-
     if (
       swapConfig &&
       swapConfig.simulate &&
@@ -2064,6 +2131,54 @@ export class AlphaRouter
         CurrencyAmount.fromRawAmount(quoteCurrency, quote.quotient.toString()),
         providerConfig
       );
+
+      if (
+        this.deleteCacheEnabledChains?.includes(this.chainId) &&
+        swapRouteWithSimulation.simulationStatus === SimulationStatus.Failed
+      ) {
+        // invalidate cached route if simulation failed
+        log.info(
+          {
+            simulationStatus: swapRouteWithSimulation.simulationStatus,
+            swapRoute: swapRouteWithSimulation,
+          },
+          `Simulation failed - detailed failure information: CacheInvalidationCount_${this.chainId}`
+        );
+        metric.putMetric(
+          `CacheInvalidationCount_${this.chainId}`,
+          1,
+          MetricLoggerUnit.Count
+        );
+
+        // Generate the object to be cached
+        const routesToCache = CachedRoutes.fromRoutesWithValidQuotes(
+          swapRouteWithSimulation.route,
+          this.chainId,
+          currencyIn,
+          currencyOut,
+          protocols.sort(),
+          await blockNumber,
+          tradeType,
+          amount.toExact()
+        );
+
+        if (!routesToCache) {
+          log.error(
+            { swapRouteWithSimulation },
+            'Failed to generate cached routes after simulation failure'
+          );
+        } else {
+          try {
+            await this.routeCachingProvider?.deleteCachedRoute(routesToCache);
+          } catch (err) {
+            log.error(
+              { err, routesToCache },
+              'Failed to delete cached route after simulation failure'
+            );
+          }
+        }
+      }
+
       metric.putMetric(
         'SimulateTransaction',
         Date.now() - beforeSimulate,
@@ -2073,6 +2188,277 @@ export class AlphaRouter
     }
 
     return swapRoute;
+  }
+
+  /**
+   * Refreshes the pools for the given routes.
+   *
+   * @param routes the routes to refresh the pools for
+   * @param routingConfig the routing config
+   */
+  protected async refreshPools(
+    routes: RouteWithValidQuote[],
+    routingConfig: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider
+  ) {
+    for (const route of routes) {
+      switch (route.protocol) {
+        case Protocol.V2:
+          route.route = await AlphaRouter.refreshV2Pools(
+            route.route as V2Route,
+            routingConfig,
+            v2PoolProvider
+          );
+          break;
+        case Protocol.V3:
+          route.route = await AlphaRouter.refreshV3Pools(
+            route.route as V3Route,
+            routingConfig,
+            v3PoolProvider
+          );
+          break;
+        case Protocol.V4:
+          route.route = await AlphaRouter.refreshV4Pools(
+            route.route as V4Route,
+            routingConfig,
+            v4PoolProvider
+          );
+          break;
+        case Protocol.MIXED:
+          route.route = await AlphaRouter.refreshMixedPools(
+            route.route as MixedRoute,
+            routingConfig,
+            v2PoolProvider,
+            v3PoolProvider,
+            v4PoolProvider
+          );
+          break;
+        default:
+          throw new Error(
+            `Unknown protocol: ${(route as { protocol: Protocol }).protocol}`
+          );
+      }
+    }
+  }
+
+  /**
+   * Refreshes the V2 pools for the given route.
+   *
+   * @param route the route to refresh the V2 pools for
+   * @param config the routing config
+   * @param v2PoolProvider the V2 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV2Pools(
+    route: V2Route,
+    config: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider
+  ): Promise<V2Route> {
+    const refreshedPairs: V2Pool[] = [];
+    for (const pair of route.pairs) {
+      const v2Pools = await v2PoolProvider.getPools(
+        [[pair.token0, pair.token1]],
+        config
+      );
+      const refreshed = v2Pools.getPool(pair.token0, pair.token1);
+      if (refreshed) refreshedPairs.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV2PoolRefreshError(pair);
+        refreshedPairs.push(pair);
+      }
+    }
+
+    return cloneV2RouteWithNewPools(route, refreshedPairs);
+  }
+
+  /**
+   * Refreshes the V3 pools for the given route.
+   *
+   * @param route the route to refresh the V3 pools for
+   * @param config the routing config
+   * @param v3PoolProvider the V3 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV3Pools(
+    route: V3Route,
+    config: AlphaRouterConfig,
+    v3PoolProvider: IV3PoolProvider
+  ): Promise<V3Route> {
+    const refreshedPools: V3Pool[] = [];
+    for (const pool of route.pools) {
+      const v3Pools = await v3PoolProvider.getPools(
+        [[pool.token0, pool.token1, pool.fee]],
+        config
+      );
+      const refreshed = v3Pools.getPool(pool.token0, pool.token1, pool.fee);
+      if (refreshed) refreshedPools.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV3PoolRefreshError(pool);
+        refreshedPools.push(pool);
+      }
+    }
+
+    return cloneV3RouteWithNewPools(route, refreshedPools);
+  }
+
+  /**
+   * Refreshes the V4 pools for the given route.
+   *
+   * @param route the route to refresh the V4 pools for
+   * @param config the routing config
+   * @param v4PoolProvider the V4 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshV4Pools(
+    route: V4Route,
+    config: AlphaRouterConfig,
+    v4PoolProvider: IV4PoolProvider
+  ): Promise<V4Route> {
+    const refreshedPools: V4Pool[] = [];
+    for (const pool of route.pools) {
+      const v4Pools = await v4PoolProvider.getPools(
+        [
+          [
+            pool.currency0,
+            pool.currency1,
+            pool.fee,
+            pool.tickSpacing,
+            pool.hooks,
+          ],
+        ],
+        config
+      );
+      const refreshed = v4Pools.getPool(
+        pool.currency0,
+        pool.currency1,
+        pool.fee,
+        pool.tickSpacing,
+        pool.hooks
+      );
+      if (refreshed) refreshedPools.push(refreshed);
+      else {
+        // if the pool is not found, we need to log the error and add the original pool back in
+        AlphaRouter.logV4PoolRefreshError(pool);
+        refreshedPools.push(pool);
+      }
+    }
+
+    return cloneV4RouteWithNewPools(route, refreshedPools);
+  }
+
+  /**
+   * Refreshes the mixed pools for the given route.
+   *
+   * @param route the route to refresh the mixed pools for
+   * @param config the routing config
+   * @param v2PoolProvider the V2 pool provider
+   * @param v3PoolProvider the V3 pool provider
+   * @param v4PoolProvider the V4 pool provider
+   * @returns the refreshed route
+   */
+  protected static async refreshMixedPools(
+    route: MixedRoute,
+    config: AlphaRouterConfig,
+    v2PoolProvider: IV2PoolProvider,
+    v3PoolProvider: IV3PoolProvider,
+    v4PoolProvider: IV4PoolProvider
+  ): Promise<MixedRoute> {
+    const refreshedPools: MixedPool[] = [];
+    for (const pool of route.pools) {
+      if (pool instanceof V2Pool) {
+        const v2Pools = await v2PoolProvider.getPools(
+          [[pool.token0, pool.token1]],
+          config
+        );
+        const refreshed = v2Pools.getPool(pool.token0, pool.token1);
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV2PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else if (pool instanceof V3Pool) {
+        const v3Pools = await v3PoolProvider.getPools(
+          [[pool.token0, pool.token1, pool.fee]],
+          config
+        );
+        const refreshed = v3Pools.getPool(pool.token0, pool.token1, pool.fee);
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV3PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else if (pool instanceof V4Pool) {
+        const v4Pools = await v4PoolProvider.getPools(
+          [
+            [
+              pool.currency0,
+              pool.currency1,
+              pool.fee,
+              pool.tickSpacing,
+              pool.hooks,
+            ],
+          ],
+          config
+        );
+        const refreshed = v4Pools.getPool(
+          pool.currency0,
+          pool.currency1,
+          pool.fee,
+          pool.tickSpacing,
+          pool.hooks
+        );
+        if (refreshed) refreshedPools.push(refreshed);
+        else {
+          // if the pool is not found, we need to log the error and add the original pool back in
+          AlphaRouter.logV4PoolRefreshError(pool);
+          refreshedPools.push(pool);
+        }
+      } else {
+        throw new Error('Unknown pool type in mixed route');
+      }
+    }
+
+    return cloneMixedRouteWithNewPools(route, refreshedPools);
+  }
+
+  private static logV2PoolRefreshError(v2Pool: V2Pool) {
+    log.error(
+      {
+        token0: v2Pool.token0,
+        token1: v2Pool.token1,
+      },
+      'Failed to refresh V2 pool'
+    );
+  }
+
+  private static logV3PoolRefreshError(v3Pool: V3Pool) {
+    log.error(
+      {
+        token0: v3Pool.token0,
+        token1: v3Pool.token1,
+        fee: v3Pool.fee,
+      },
+      'Failed to refresh V3 pool'
+    );
+  }
+
+  private static logV4PoolRefreshError(v4Pool: V4Pool) {
+    log.error(
+      {
+        token0: v4Pool.currency0,
+        token1: v4Pool.currency1,
+        fee: v4Pool.fee,
+        tickSpacing: v4Pool.tickSpacing,
+        hooks: v4Pool.hooks,
+      },
+      'Failed to refresh V4 pool'
+    );
   }
 
   private async setCachedRoutesAndLog(
@@ -2698,15 +3084,19 @@ export class AlphaRouter
                   blockNumber: routingConfig.blockNumber,
                   v2SubgraphProvider: this.v2SubgraphProvider,
                   v3SubgraphProvider: this.v3SubgraphProvider,
+                  v4SubgraphProvider: this.v4SubgraphProvider,
                   v2Candidates: v2CandidatePools,
                   v3Candidates: v3CandidatePools,
                   v4Candidates: v4CandidatePools,
+                  mixedCrossLiquidityV3AgainstV4Supported:
+                    this.mixedCrossLiquidityV3AgainstV4Supported,
+                  chainId: this.chainId,
                 });
 
               return this.mixedQuoter
                 .getRoutesThenQuotes(
-                  tokenIn,
-                  tokenOut,
+                  currencyIn,
+                  currencyOut,
                   amount,
                   amounts,
                   percents,
@@ -2847,7 +3237,7 @@ export class AlphaRouter
       this.v3PoolProvider,
       providerConfig
     );
-    const nativeCurrency = WRAPPED_NATIVE_CURRENCY[this.chainId];
+    const nativeCurrency = getWrappedNativeCurrency(this.chainId);
     const nativeAndQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
       ? getHighestLiquidityV3NativePool(
           quoteToken,
@@ -2971,14 +3361,24 @@ export class AlphaRouter
     amount: CurrencyAmount,
     routingConfig: AlphaRouterConfig
   ): [number[], CurrencyAmount[]] {
-    const { distributionPercent } = routingConfig;
-    const percents = [];
-    const amounts = [];
-
-    for (let i = 1; i <= 100 / distributionPercent; i++) {
-      percents.push(i * distributionPercent);
-      amounts.push(amount.multiply(new Fraction(i * distributionPercent, 100)));
+    const { distributionPercent, tokenizeRoutePercent = 0 } = routingConfig;
+    if (
+      !Number.isInteger(tokenizeRoutePercent) ||
+      tokenizeRoutePercent < 0 ||
+      tokenizeRoutePercent > 100
+    )
+      throw new Error('tokenizeRoutePercent must be an integer from 0 to 100');
+    const sizes = new Set<number>();
+    for (let i = 1; i <= 100 / distributionPercent; i++)
+      sizes.add(i * distributionPercent);
+    if (this.chainId === ChainId.BASE_SEPOLIA && tokenizeRoutePercent > 0) {
+      sizes.add(tokenizeRoutePercent);
+      if (tokenizeRoutePercent < 100) sizes.add(100 - tokenizeRoutePercent);
     }
+    const percents = [...sizes].sort((a, b) => a - b);
+    const amounts = percents.map((percent) =>
+      amount.multiply(new Fraction(percent, 100))
+    );
 
     return [percents, amounts];
   }
@@ -3297,9 +3697,36 @@ export class AlphaRouter
     );
   }
 
-  // We want to skip cached routes access whenever "intent === INTENT.CACHING".
+  // If we are requesting URv1.2, we need to keep entering cache
+  // We want to skip cached routes access whenever "intent === INTENT.CACHING" or "hooksOption !== HooksOption.HOOKS_INCLUSIVE"
   // We keep this method as we might want to add more conditions in the future.
-  public static isAllowedToEnterCachedRoutes(intent?: INTENT): boolean {
-    return intent !== INTENT.CACHING;
+  public static isAllowedToEnterCachedRoutes(
+    intent?: INTENT,
+    hooksOptions?: HooksOptions,
+    swapRouter?: boolean
+  ): boolean {
+    // intent takes highest precedence, as we need to ensure during caching intent, we do not enter cache no matter what
+    if (intent !== undefined && intent === INTENT.CACHING) {
+      return false;
+    }
+
+    // in case we have URv1.2 request during QUOTE intent, we assume cached routes correctly returns mixed route w/o v4, if mixed is best
+    // or v2/v3 is the best.
+    // implicitly it means hooksOptions no longer matters for URv1.2
+    // swapRouter has higher precedence than hooksOptions, because in case of URv1.2, we set hooksOptions = NO_HOOKS as default,
+    // but swapRouter does not have any v4 pool for routing, so swapRouter should always use caching during QUOTE intent.
+    if (swapRouter) {
+      return true;
+    }
+
+    // in case we have URv2.0, and we are in QUOTE intent, we only want to enter cache when hooksOptions is default, HOOKS_INCLUSIVE
+    if (
+      hooksOptions !== undefined &&
+      hooksOptions !== HooksOptions.HOOKS_INCLUSIVE
+    ) {
+      return false;
+    }
+
+    return true;
   }
 }

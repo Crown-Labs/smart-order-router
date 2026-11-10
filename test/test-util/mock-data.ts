@@ -85,6 +85,17 @@ export const USDC_DAI_V4_LOW = new V4Pool(
   0
 );
 
+export const WETH_DAI_V4_LOW_HOOKS = new V4Pool(
+  WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
+  DAI,
+  FeeAmount.LOW,
+  10,
+  '0x00001f3b9712708127b1fcad61cb892535951888',
+  encodeSqrtRatioX96(1, 1),
+  10,
+  0
+);
+
 export const USDC_DAI_V4_MEDIUM = new V4Pool(
   USDC,
   DAI,
@@ -436,10 +447,16 @@ export const poolToV4SubgraphPool = (
     hooks: pool.hooks,
     liquidity: pool.liquidity.toString(),
     token0: {
+      symbol: pool.token0.symbol,
       id: pool.token0.wrapped.address,
+      name: pool.token0.wrapped.name,
+      decimals: pool.token0.wrapped.decimals.toString(),
     },
     token1: {
+      symbol: pool.token1.symbol,
       id: pool.token1.wrapped.address,
+      name: pool.token1.wrapped.name,
+      decimals: pool.token1.wrapped.decimals.toString(),
     },
     tvlETH: parseFloat(pool.liquidity.toString()),
     tvlUSD: parseFloat(pool.liquidity.toString()),
@@ -689,6 +706,36 @@ export const DFNDR = new Token(
   BigNumber.from(500),
   BigNumber.from(500)
 );
+export const BUFF = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0x404853ac2976cbe92bd0d3d73d2e9c703d09f623',
+  18,
+  'BUFF',
+  'BUFF',
+  false,
+  BigNumber.from(100),
+  BigNumber.from(100)
+);
+export const DGW = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0x9cCe9aE579142e372a8959285e3a5a2e211904F7',
+  18,
+  'DGW',
+  'DGW',
+  false,
+  BigNumber.from(100),
+  BigNumber.from(100)
+);
+export const BFB = new Token(
+  ChainId.ARBITRUM_ONE,
+  '0xae37443432e73b66c2c5b5f68fb8e26b006aee80',
+  18,
+  'BFB',
+  'BFB',
+  false,
+  BigNumber.from(100),
+  BigNumber.from(100)
+);
 export const DFNDR_WITHOUT_TAX = new Token(
   ChainId.MAINNET,
   '0x3f57c35633cb29834bb7577ba8052eab90f52a02',
@@ -716,11 +763,11 @@ export const FLAT_PORTION: Portion = {
 
 export const GREENLIST_TOKEN_PAIRS: Array<[Currency, Currency]> = [
   [Ether.onChain(ChainId.MAINNET), USDC],
-  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], USDT],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!, USDT],
   [DAI, WBTC],
 ];
 
 export const GREENLIST_CARVEOUT_PAIRS: Array<[Currency, Currency]> = [
   [USDC, DAI],
-  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET], Ether.onChain(ChainId.MAINNET)],
+  [WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!, Ether.onChain(ChainId.MAINNET)],
 ];

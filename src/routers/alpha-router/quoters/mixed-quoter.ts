@@ -1,5 +1,6 @@
 import { Protocol } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, TradeType } from '@kittycorn-labs/sdk-core';
+import { UniversalRouterVersion } from '@kittycorn-labs/universal-router-sdk';
 import _ from 'lodash';
 
 import {
@@ -22,6 +23,7 @@ import {
   MetricLoggerUnit,
   routeToString,
 } from '../../../util';
+import { mixedRouteFilterOutV4Pools } from '../../../util/mixedRouteFilterOutV4Pools';
 import { MixedRoute } from '../../router';
 import { AlphaRouterConfig } from '../alpha-router';
 import { MixedRouteWithValidQuote } from '../entities';
@@ -179,13 +181,21 @@ export class MixedQuoter extends BaseQuoter<
 
     const { maxSwapsPerPath } = routingConfig;
 
-    const routes = computeAllMixedRoutes(
+    let routes = computeAllMixedRoutes(
       currencyIn,
       currencyOut,
       pools,
       maxSwapsPerPath,
-      routingConfig.shouldEnableMixedRouteEthWeth
+      routingConfig.shouldEnableMixedRouteEthWeth,
+      routingConfig.hooksOptions
     );
+
+    if (
+      routingConfig.universalRouterVersion === UniversalRouterVersion.V1_2 ||
+      !routingConfig.protocols?.includes(Protocol.V4)
+    ) {
+      routes = mixedRouteFilterOutV4Pools(routes);
+    }
 
     metric.putMetric(
       'MixedGetRoutesLoad',

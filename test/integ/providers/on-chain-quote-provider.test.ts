@@ -85,7 +85,7 @@ describe('on chain quote provider', () => {
       const amountOuts = [
         CurrencyAmount.fromRawAmount(
           mockB,
-          JSBI.BigInt(exactInQuotes.routesWithQuotes[0][1][0].quote)
+          JSBI.BigInt(exactInQuotes.routesWithQuotes[0]![1][0]!.quote!.toString())
         ),
       ];
       const exactOutQuotes = await onChainQuoteProvider.getQuotesManyExactOut(
@@ -96,7 +96,7 @@ describe('on chain quote provider', () => {
       // @ts-ignore
       const opQuoteAmount = CurrencyAmount.fromRawAmount(
         mockA,
-        exactOutQuotes.routesWithQuotes[0][1][0].quote
+        exactOutQuotes.routesWithQuotes[0]![1][0]!.quote!.toString()
       );
       // @ts-ignore
       expect(opQuoteAmount.equalTo(amountIns[0])).toBeTruthy();
@@ -111,7 +111,7 @@ describe('on chain quote provider', () => {
       const mixedAmountOuts = [
         CurrencyAmount.fromRawAmount(
           mockB,
-          JSBI.BigInt(mixedExactInQuotes.routesWithQuotes[0][1][0].quote)
+          JSBI.BigInt(mixedExactInQuotes.routesWithQuotes[0]![1][0]!.quote!.toString())
         ),
       ];
       // @ts-ignore

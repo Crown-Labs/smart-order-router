@@ -5,6 +5,7 @@ import JSBI from 'jsbi';
 import _ from 'lodash';
 import FixedReverseHeap from 'mnemonist/fixed-reverse-heap';
 import Queue from 'mnemonist/queue';
+import { getWrappedNativeCurrency } from '../../../util/chains';
 
 import { IPortionProvider } from '../../../providers/portion-provider';
 import { ProviderConfig } from '../../../providers/provider';
@@ -95,7 +96,7 @@ export async function getBestSwapRoute(
 
   // Given all the valid quotes for each percentage find the optimal route.
   const getBestSwapRouteByStartTime = Date.now();
-  const swapRoute = await getBestSwapRouteBy(
+  let swapRoute = await getBestSwapRouteBy(
     routeType,
     percentToQuotes,
     percents,
@@ -109,6 +110,59 @@ export async function getBestSwapRoute(
     swapConfig,
     providerConfig
   );
+  // Preserve bootstrap volume without deleting better quotes from the candidate set.
+  const minimum =
+    chainId === ChainId.BASE_SEPOLIA
+      ? routingConfig.tokenizeRoutePercent ?? 0
+      : 0;
+  const lossBps = routingConfig.maxTokenizeQuoteLossBps ?? 50;
+  if (
+    !Number.isInteger(minimum) ||
+    minimum < 0 ||
+    minimum > 100 ||
+    !Number.isInteger(lossBps) ||
+    lossBps < 0 ||
+    lossBps > 10000
+  )
+    throw new Error('Invalid Tokenize routing policy');
+  if (swapRoute && minimum > 0 && tokenizePercent(swapRoute.routes) < minimum) {
+    const preferred = await getBestSwapRouteBy(
+      routeType,
+      percentToQuotes,
+      percents,
+      chainId,
+      (rq) => rq.quoteAdjustedForGas,
+      routingConfig,
+      portionProvider,
+      v2GasModel,
+      v3GasModel,
+      v4GasModel,
+      swapConfig,
+      providerConfig,
+      minimum,
+      swapRoute.quote
+        .multiply(
+          routeType === TradeType.EXACT_INPUT
+            ? 10000 - lossBps
+            : 10000 + lossBps
+        )
+        .divide(10000)
+    );
+    const acceptable =
+      preferred &&
+      (routeType === TradeType.EXACT_INPUT
+        ? !preferred.quote
+            .multiply(10000)
+            .lessThan(swapRoute.quote.multiply(10000 - lossBps))
+        : !preferred.quote
+            .multiply(10000)
+            .greaterThan(swapRoute.quote.multiply(10000 + lossBps)));
+    log.info(
+      { minimum, maxQuoteLossBps: lossBps, applied: Boolean(acceptable) },
+      'Tokenize bootstrap routing policy'
+    );
+    if (acceptable) swapRoute = preferred;
+  }
   const getBestSwapRouteByLatencyMs = Date.now() - getBestSwapRouteByStartTime;
 
   // Add latency metrics.
@@ -187,13 +241,15 @@ export async function getBestSwapRouteBy(
   v3GasModel?: IGasModel<V3RouteWithValidQuote>,
   v4GasModel?: IGasModel<V4RouteWithValidQuote>,
   swapConfig?: SwapOptions,
-  providerConfig?: ProviderConfig
+  providerConfig?: ProviderConfig,
+  requiredTokenizePercent = 0,
+  policyQuoteLimit?: CurrencyAmount
 ): Promise<BestSwapRoute | undefined> {
   // Build a map of percentage to sorted list of quotes, with the biggest quote being first in the list.
   const percentToSortedQuotes = _.mapValues(
     percentToQuotes,
     (routeQuotes: RouteWithValidQuote[]) => {
-      return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
+      return [...routeQuotes].sort((routeQuoteA, routeQuoteB) => {
         if (routeType == TradeType.EXACT_INPUT) {
           return by(routeQuoteA).greaterThan(by(routeQuoteB)) ? -1 : 1;
         } else {
@@ -231,62 +287,19 @@ export async function getBestSwapRouteBy(
     3
   );
 
-  const { minSplits, maxSplits, forceCrossProtocol, distributionPercent } =
-    routingConfig;
+  const { minSplits, maxSplits, forceCrossProtocol } = routingConfig;
 
-  // Kittycorn: Added algorithm to split the 100% amount into tokenize smaller amounts
-  // Note: Check if we have a route for 100% amount that is not tokenize route,
-  // we will try to split the amount needed to swap through tokenize route
-  if (
-    distributionPercent != 0 &&
-    percentToSortedQuotes[100] &&
-    !isTokenizeRoute(percentToSortedQuotes[100][0]!.route)
-  ) {
-    // Ex: distributionPercent is 5%, Try to make split percent 5%, 10%, 15%, ..., 45%, and find a tokenize route
-    for (
-      let percent = distributionPercent;
-      percent < 50;
-      percent += distributionPercent
-    ) {
-      const basePercent = 100 - percent;
-      if (!isTokenizeRoute(percentToSortedQuotes[basePercent]![0]!.route)) {
-        // Base percent is not tokenize route, need to look for a tokenize route in split percent
-        for (let i = 0; i < percentToSortedQuotes[percent]!.length; i++) {
-          const percentToSortedQuote = percentToSortedQuotes[percent]![i]!;
-          if (
-            isTokenizeRoute(percentToSortedQuote.route) &&
-            +percentToSortedQuote.quoteAdjustedForGas.toSignificant() > 0
-          ) {
-            // Found a tokenize route for the split percent, so we need to remove all routes over base percent
-            for (let remove = 100; remove > basePercent; remove -= 5) {
-              delete percentToSortedQuotes[remove];
-            }
-
-            // And remove all routes in the split percent before the found tokenize route
-            percentToSortedQuotes[percent]!.splice(0, i);
-
-            // Break now, break all the loop by set percent value to over for condition
-            percent = 999;
-            break;
-          }
-        }
-      } else {
-        // We found a tokenize route for the base percent, so we need to remove routes over base percent
-        for (
-          let remove = 100;
-          remove > basePercent;
-          remove -= distributionPercent
-        ) {
-          delete percentToSortedQuotes[remove];
-        }
-
-        // Break now, as we found a tokenize route for the base percent
-        break;
-      }
-    }
-  }
-
-  if (!percentToSortedQuotes[100] || minSplits > 1 || forceCrossProtocol) {
+  const withinPolicyBudget = (quote: CurrencyAmount): boolean =>
+    !policyQuoteLimit ||
+    (routeType === TradeType.EXACT_INPUT
+      ? !quote.lessThan(policyQuoteLimit)
+      : !quote.greaterThan(policyQuoteLimit));
+  const singleRoutes = (percentToSortedQuotes[100] ?? []).filter(
+    (route) =>
+      tokenizePercent([route]) >= requiredTokenizePercent &&
+      withinPolicyBudget(route.quote)
+  );
+  if (!singleRoutes.length || minSplits > 1 || forceCrossProtocol) {
     log.info(
       {
         percentToSortedQuotes: _.mapValues(
@@ -297,10 +310,10 @@ export async function getBestSwapRouteBy(
       'Did not find a valid route without any splits. Continuing search anyway.'
     );
   } else {
-    bestQuote = by(percentToSortedQuotes[100][0]!);
-    bestSwap = [percentToSortedQuotes[100][0]!];
+    bestQuote = by(singleRoutes[0]!);
+    bestSwap = [singleRoutes[0]!];
 
-    for (const routeWithQuote of percentToSortedQuotes[100].slice(0, 5)) {
+    for (const routeWithQuote of singleRoutes.slice(0, 5)) {
       bestSwapsPerSplit.push({
         quote: by(routeWithQuote),
         routes: [routeWithQuote],
@@ -326,26 +339,21 @@ export async function getBestSwapRouteBy(
       continue;
     }
 
-    queue.enqueue({
-      curRoutes: [percentToSortedQuotes[percent]![0]!],
-      percentIndex: i,
-      remainingPercent: 100 - percent,
-      special: false,
-    });
-
-    if (
-      !percentToSortedQuotes[percent] ||
-      !percentToSortedQuotes[percent]![1]
-    ) {
-      continue;
+    const candidates = percentToSortedQuotes[percent]!;
+    const seeds = candidates.slice(0, 2);
+    if (requiredTokenizePercent > 0) {
+      const tokenized = candidates.find((route) =>
+        isTokenizeRoute(route.route)
+      );
+      if (tokenized && !seeds.includes(tokenized)) seeds.push(tokenized);
     }
-
-    queue.enqueue({
-      curRoutes: [percentToSortedQuotes[percent]![1]!],
-      percentIndex: i,
-      remainingPercent: 100 - percent,
-      special: true,
-    });
+    for (const [index, seed] of seeds.entries())
+      queue.enqueue({
+        curRoutes: [seed],
+        percentIndex: i,
+        remainingPercent: 100 - percent,
+        special: index > 0,
+      });
   }
 
   let splits = 1;
@@ -419,7 +427,11 @@ export async function getBestSwapRouteBy(
           continue;
         }
 
-        const candidateRoutesA = percentToSortedQuotes[percentA]!;
+        const candidateRoutesA = percentToSortedQuotes[percentA]!.filter(
+          (route) =>
+            remainingPercent !== percentA ||
+            tokenizePercent([...curRoutes, route]) >= requiredTokenizePercent
+        );
 
         // Find the best route in the complimentary percentage that doesn't re-use a pool already
         // used in the current route. Re-using pools is not allowed as each swap through a pool changes its liquidity,
@@ -439,6 +451,10 @@ export async function getBestSwapRouteBy(
 
         // If we've found a route combination that uses all 100%, and it has at least minSplits, update our best route.
         if (remainingPercentNew == 0 && splits >= minSplits) {
+          if (
+            !withinPolicyBudget(sumFn(curRoutesNew.map((route) => route.quote)))
+          )
+            continue;
           const quotesNew = _.map(curRoutesNew, (r) => by(r));
           const quoteNew = sumFn(quotesNew);
 
@@ -950,8 +966,9 @@ export const routeHasWrappedNativeTokenInputOrOutput = (
   routeWithValidQuote: RouteWithValidQuote
 ): boolean => {
   const chainId = routeWithValidQuote.route.chainId;
-  const wrappedNativeToken =
-    WRAPPED_NATIVE_CURRENCY[chainId as keyof typeof WRAPPED_NATIVE_CURRENCY];
+  const wrappedNativeToken = getWrappedNativeCurrency(
+    chainId as keyof typeof WRAPPED_NATIVE_CURRENCY
+  );
   if (!wrappedNativeToken) {
     return false;
   }
@@ -962,3 +979,11 @@ export const routeHasWrappedNativeTokenInputOrOutput = (
       routeWithValidQuote.route.output.wrapped.equals(wrappedNativeToken))
   );
 };
+
+/** Percentage of the specified side (input for exact-in, output for exact-out) earning Tokenize pool fees. */
+function tokenizePercent(routes: RouteWithValidQuote[]): number {
+  return routes.reduce(
+    (sum, route) => sum + (isTokenizeRoute(route.route) ? route.percent : 0),
+    0
+  );
+}

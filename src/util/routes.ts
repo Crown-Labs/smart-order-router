@@ -1,9 +1,10 @@
 import { Protocol, TPool } from '@kittycorn-labs/router-sdk';
-import { ChainId, Currency, Percent, Token } from '@kittycorn-labs/sdk-core';
+import { ChainId, Currency, Percent } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
 import {
-  BASE_TOKENIZE_UNDERLYING,
+  isTokenizeConversion,
+  KITTYCORN_BASE_SEPOLIA,
   Pool as V4Pool,
 } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
@@ -14,11 +15,10 @@ import {
   RouteWithValidQuote,
 } from '../routers/alpha-router';
 import { MixedRoute, SupportedRoutes } from '../routers/router';
-import { WRAPPED_NATIVE_CURRENCY } from '../util';
 
 import { V3_CORE_FACTORY_ADDRESSES } from './addresses';
 
-import { CurrencyAmount } from '.';
+import { CurrencyAmount, V4_ETH_WETH_FAKE_POOL } from '.';
 
 export const routeToTokens = (route: SupportedRoutes): Currency[] => {
   switch (route.protocol) {
@@ -79,10 +79,6 @@ export const routeToString = (route: SupportedRoutes): string => {
   const tokens = routeToTokens(route);
   const tokenPath = _.map(tokens, (token) => `${token.symbol}`);
   const pools = routeToPools(route);
-
-  const cacheTokenizes: { [chainId: number]: string[] } = {};
-  const cacheWethAddress: { [chainId: number]: string } = {};
-
   const poolFeePath = _.map(pools, (pool) => {
     if (pool instanceof Pair) {
       return ` -- [${Pair.getAddress(
@@ -100,56 +96,11 @@ export const routeToString = (route: SupportedRoutes): string => {
     } else if (pool instanceof V4Pool) {
       // Special case in the case of ETH/WETH fake pool
       // where we do not want to return the fake pool in the route string as it is not a real pool
-      // if (
-      //   pool.tickSpacing ===
-      //   V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId].tickSpacing
-      // ) {
-      //   return ' --  ';
-      // }
-
-      // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
-      const chainId = pool.chainId as ChainId;
-
-      // Store Tokenize addresses into cache first
-      if (!cacheTokenizes[chainId]) {
-        cacheTokenizes[chainId] =
-          BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
-        return base.tokenize.address.toLocaleLowerCase();
-          }) || [];
-      }
-
-      // Store WETH address into cache first
-      if (!cacheWethAddress[chainId]) {
-        cacheWethAddress[chainId] =
-          WRAPPED_NATIVE_CURRENCY[chainId]?.address.toLocaleLowerCase() || '';
-      }
-
-      const tokenize0 =
-        !(pool.token0 as Token).isNative &&
-        cacheTokenizes[chainId]?.includes(
-          (pool.token0 as Token).address.toLowerCase()
-        );
-      const tokenize1 =
-        !(pool.token0 as Token).isNative &&
-        cacheTokenizes[chainId]?.includes(
-          (pool.token1 as Token).address.toLowerCase()
-        );
-      const wrap =
-        (pool.token0 as Token).isNative &&
-        (pool.token1 as Token).address.toLowerCase() ===
-          cacheWethAddress[chainId];
-      const unwrap =
-        (pool.token1 as Token).isNative &&
-        (pool.token0 as Token).address.toLowerCase() ===
-          cacheWethAddress[chainId];
-
       if (
-        (tokenize0 && !tokenize1) ||
-        (!tokenize0 && tokenize1) ||
-        wrap ||
-        unwrap
+        pool.tickSpacing ===
+        V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId]?.tickSpacing
       ) {
-        return ` -- ${0.0}% [0x0000000000000000000000000000000000000000000000000000000000000000]`;
+        return ' --  ';
       }
 
       return ` -- ${pool.fee / 10000}% [${V4Pool.getPoolId(
@@ -174,44 +125,6 @@ export const routeToString = (route: SupportedRoutes): string => {
   }
 
   return routeStr.join('');
-};
-
-export const isTokenizeRoute = (route: SupportedRoutes): boolean => {
-  const pools = routeToPools(route);
-  if (!pools || pools.length === 0) {
-    return false;
-  }
-
-  const chainId = pools[0]?.chainId as ChainId;
-  const tokenizes = BASE_TOKENIZE_UNDERLYING[chainId]?.map((base) => {
-    return base.tokenize.address.toLocaleLowerCase();
-  });
-
-  for (const pool of pools) {
-    if (pool instanceof V4Pool) {
-      // Special case in the case of ETH/WETH fake pool
-      // where we do not want to return the fake pool in the route string as it is not a real pool
-      // if (
-      //   pool.tickSpacing ===
-      //   V4_ETH_WETH_FAKE_POOL[pool.chainId as ChainId].tickSpacing
-      // ) {
-      //   continue;
-      // }
-
-      // Kittycorn: replace pool id with 0x for Tokenize pool in routeToString
-
-      const tokenize0 =
-        !(pool.token0 as Token).isNative &&
-        tokenizes?.includes((pool.token0 as Token).address.toLowerCase());
-      const tokenize1 =
-        !(pool.token0 as Token).isNative &&
-        tokenizes?.includes((pool.token1 as Token).address.toLowerCase());
-      if (tokenize0 || tokenize1) {
-        return true;
-      }
-    }
-  }
-  return false;
 };
 
 export const routeAmountsToString = (
@@ -241,14 +154,19 @@ export function shouldWipeoutCachedRoutes(
   cachedRoutes?: CachedRoutes,
   routingConfig?: AlphaRouterConfig
 ): boolean {
-  // In case of optimisticCachedRoutes, we don't want to wipe out the cache
-  // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
-  // such that we should still use the cached routes.
-  // In case of routing-api,
-  // when intent=quote, optimisticCachedRoutes will be true, it means it's an online quote request, and we should use the cached routes.
-  // when intent=caching, optimisticCachedRoutes will be false, it means it's an async routing lambda invocation for the benefit of
-  // non-perf-sensitive, so that we can nullify the retrieved cached routes, if certain condition meets.
-  if (routingConfig?.optimisticCachedRoutes) {
+  // We want to roll out the mixed route with UR v1_2 with percent control,
+  // along with the cached routes so that we can test the performance of the mixed route with UR v1_2ss
+  if (
+    routingConfig?.enableMixedRouteWithUR1_2 &&
+    // In case of optimisticCachedRoutes, we don't want to wipe out the cache
+    // This is because the upstream client will indicate that it's a perf sensitive (likely online) request,
+    // such that we should still use the cached routes.
+    // In case of routing-api,
+    // when intent=quote, optimisticCachedRoutes will be true, it means it's an online quote request, and we should use the cached routes.
+    // when intent=caching, optimisticCachedRoutes will be false, it means it's an async routing lambda invocation for the benefit of
+    // non-perf-sensitive, so that we can nullify the retrieved cached routes, if certain condition meets.
+    routingConfig?.optimisticCachedRoutes
+  ) {
     return false;
   }
 
@@ -285,3 +203,15 @@ function poolIsInExcludedProtocols(
     return false;
   }
 }
+
+/** True only when volume earns swap fees in a real pool containing a registered Tokenize. */
+export const isTokenizeRoute = (route: SupportedRoutes): boolean =>
+  route.protocol !== Protocol.V2 &&
+  route.pools.some(
+    (pool) =>
+      pool instanceof V4Pool &&
+      !isTokenizeConversion(pool) &&
+      KITTYCORN_BASE_SEPOLIA.tokens.some(({ tokenize }) =>
+        pool.involvesToken(tokenize)
+      )
+  );

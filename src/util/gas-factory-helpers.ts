@@ -9,6 +9,7 @@ import { FeeAmount, Pool } from '@kittycorn-labs/v3-sdk';
 import brotli from 'brotli';
 import JSBI from 'jsbi';
 import _ from 'lodash';
+import { getWrappedNativeCurrency } from './chains';
 
 import { IV2PoolProvider, IV4PoolProvider } from '../providers';
 import { IPortionProvider } from '../providers/portion-provider';
@@ -32,12 +33,7 @@ import {
   V3RouteWithValidQuote,
   V4RouteWithValidQuote,
 } from '../routers';
-import {
-  CurrencyAmount,
-  getApplicableV3FeeAmounts,
-  log,
-  WRAPPED_NATIVE_CURRENCY,
-} from '../util';
+import { CurrencyAmount, getApplicableV3FeeAmounts, log } from '../util';
 
 import { opStackChains } from './l2FeeChains';
 import { buildSwapMethodParameters, buildTrade } from './methodParameters';
@@ -48,7 +44,7 @@ export async function getV2NativePool(
   providerConfig?: GasModelProviderConfig
 ): Promise<Pair | null> {
   const chainId = token.chainId as ChainId;
-  const weth = WRAPPED_NATIVE_CURRENCY[chainId]!;
+  const weth = getWrappedNativeCurrency(chainId)!;
 
   const poolAccessor = await poolProvider.getPools(
     [[weth, token]],
@@ -78,7 +74,7 @@ export async function getHighestLiquidityV3NativePool(
   poolProvider: IV3PoolProvider,
   providerConfig?: GasModelProviderConfig
 ): Promise<Pool | null> {
-  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[token.chainId as ChainId]!;
+  const nativeCurrency = getWrappedNativeCurrency(token.chainId as ChainId)!;
 
   const feeAmounts = getApplicableV3FeeAmounts(token.chainId);
 
@@ -119,7 +115,7 @@ export async function getHighestLiquidityV3USDPool(
   providerConfig?: GasModelProviderConfig
 ): Promise<Pool> {
   const usdTokens = usdGasTokensByChain[chainId];
-  const wrappedCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
+  const wrappedCurrency = getWrappedNativeCurrency(chainId)!;
 
   if (!usdTokens) {
     throw new Error(
@@ -276,7 +272,7 @@ export async function calculateGasUsed(
 
   // add l2 to l1 fee and wrap fee to native currency
   const gasCostInWei = gasPriceWei.mul(simulatedGasUsed).add(l2toL1FeeInWei);
-  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+  const nativeCurrency = getWrappedNativeCurrency(chainId);
   const costNativeCurrency = getGasCostInNativeCurrency(
     nativeCurrency,
     gasCostInWei
@@ -591,7 +587,7 @@ export const calculateL1GasFeesHelper = async (
   }
 
   // wrap fee to native currency
-  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+  const nativeCurrency = getWrappedNativeCurrency(chainId);
   const costNativeCurrency = CurrencyAmount.fromRawAmount(
     nativeCurrency,
     mainnetFeeInWei.toString()

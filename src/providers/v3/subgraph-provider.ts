@@ -87,7 +87,8 @@ export class V3SubgraphProvider
     rollback = true,
     trackedEthThreshold = 0.01,
     untrackedUsdThreshold = Number.MAX_VALUE,
-    subgraphUrlOverride?: string
+    subgraphUrlOverride?: string,
+    bearerToken?: string
   ) {
     super(
       Protocol.V3,
@@ -96,36 +97,12 @@ export class V3SubgraphProvider
       timeout,
       rollback,
       trackedEthThreshold,
+      0, // trackedZoraEthThreshold is not applicable for V3
+      new Set<string>(), // zoraHooks is not applicable for V3
       untrackedUsdThreshold,
-      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId]
+      subgraphUrlOverride ?? SUBGRAPH_URL_BY_CHAIN[chainId],
+      bearerToken
     );
-  }
-
-  protected override subgraphQuery(blockNumber?: number): string {
-    return `
-    query getPools($pageSize: Int!, $id: String) {
-      pools(
-        first: $pageSize
-        ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
-        ) {
-          id
-          token0 {
-            symbol
-            id
-          }
-          token1 {
-            symbol
-            id
-          }
-          feeTier
-          liquidity
-          totalValueLockedUSD
-          totalValueLockedETH
-          totalValueLockedUSDUntracked
-        }
-      }
-   `;
   }
 
   protected override mapSubgraphPool(

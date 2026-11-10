@@ -23,7 +23,7 @@ export async function getPools(
     v3PoolProvider,
     providerConfig
   );
-  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId];
+  const nativeCurrency = WRAPPED_NATIVE_CURRENCY[chainId]!;
   const nativeAndQuoteTokenV3PoolPromise = !quoteToken.equals(nativeCurrency)
     ? getHighestLiquidityV3NativePool(
         quoteToken,

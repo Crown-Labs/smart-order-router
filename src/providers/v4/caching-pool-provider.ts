@@ -1,6 +1,7 @@
 import { ChainId, Currency } from '@kittycorn-labs/sdk-core';
 import { Pool } from '@kittycorn-labs/v4-sdk';
 import _ from 'lodash';
+import { getTokenizePairs } from '../../util/tokenize';
 
 import { log, metric, MetricLoggerUnit } from '../../util';
 import { ICache } from '../cache';
@@ -34,6 +35,11 @@ export class CachingV4PoolProvider implements IV4PoolProvider {
     currencyPairs: [Currency, Currency, number, number, string][],
     providerConfig?: ProviderConfig
   ): Promise<V4PoolAccessor> {
+    const conversions = getTokenizePairs(this.chainId);
+    currencyPairs = [...currencyPairs, ...conversions];
+    // Never cache a moving ERC4626 rate under an unversioned "latest" key.
+    if (conversions.length && providerConfig?.blockNumber === undefined)
+      return this.poolProvider.getPools(currencyPairs, providerConfig);
     const poolIdSet: Set<string> = new Set<string>();
     const poolsToGetCurrencyPairs: Array<
       [Currency, Currency, number, number, string]

@@ -102,7 +102,9 @@ describe('gas factory helpers tests', () => {
           mockPoolProvider as unknown as V3PoolProvider
         )
       ).rejects.toThrowError(
-        `Could not find a USD/${WRAPPED_NATIVE_CURRENCY[1].symbol} pool for computing gas costs.`
+        `Could not find a USD/${
+          WRAPPED_NATIVE_CURRENCY[1]!.symbol
+        } pool for computing gas costs.`
       );
     });
   });
@@ -111,7 +113,7 @@ describe('gas factory helpers tests', () => {
     it('should return correct estimated gas values and quoteGasAdjusted', async () => {
       const mockPoolProvider = getMockedV3PoolProvider();
 
-      const amountToken = WRAPPED_NATIVE_CURRENCY[1];
+      const amountToken = WRAPPED_NATIVE_CURRENCY[1]!;
       const quoteToken = DAI_MAINNET;
       const gasToken = USDC_MAINNET;
       const providerConfig = {

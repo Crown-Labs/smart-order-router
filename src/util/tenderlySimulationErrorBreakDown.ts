@@ -1,6 +1,7 @@
 import { Token } from '@kittycorn-labs/sdk-core';
 
-import { SimulationStatus, VIRTUAL_BASE } from '../providers';
+import { SimulationStatus } from '../providers/simulation-provider';
+import { VIRTUAL_BASE } from '../providers/token-provider';
 
 export function breakDownTenderlySimulationError(
   tokenIn: Token,

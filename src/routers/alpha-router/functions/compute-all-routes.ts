@@ -1,17 +1,16 @@
-import { TPool } from '@kittycorn-labs/router-sdk';
+import { ADDRESS_ZERO, TPool } from '@kittycorn-labs/router-sdk';
 import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
-import {
-  BASE_TOKENIZE_UNDERLYING,
-  Pool as V4Pool,
-} from '@kittycorn-labs/v4-sdk';
+import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
+import { isTokenizeConversion } from '../../../util/tokenize';
 
 import {
   getAddressLowerCase,
   nativeOnChain,
   V4_ETH_WETH_FAKE_POOL,
 } from '../../../util';
+import { HooksOptions } from '../../../util/hooksOptions';
 import { log } from '../../../util/log';
 import { poolToString, routeToString } from '../../../util/routes';
 import {
@@ -26,8 +25,19 @@ export function computeAllV4Routes(
   currencyIn: Currency,
   currencyOut: Currency,
   pools: V4Pool[],
-  maxHops: number
+  maxHops: number,
+  hooksOptions?: HooksOptions
 ): V4Route[] {
+  let filteredPools: V4Pool[] = pools;
+
+  if (hooksOptions === HooksOptions.HOOKS_ONLY) {
+    filteredPools = pools.filter((pool) => pool.hooks !== ADDRESS_ZERO);
+  }
+
+  if (hooksOptions === HooksOptions.NO_HOOKS) {
+    filteredPools = pools.filter((pool) => pool.hooks === ADDRESS_ZERO);
+  }
+
   return computeAllRoutes<V4Pool, V4Route, Currency>(
     currencyIn,
     currencyOut,
@@ -35,7 +45,7 @@ export function computeAllV4Routes(
       return new V4Route(route, currencyIn, currencyOut);
     },
     (pool: V4Pool, currency: Currency) => pool.involvesToken(currency),
-    pools,
+    filteredPools,
     maxHops
   );
 }
@@ -81,8 +91,33 @@ export function computeAllMixedRoutes(
   currencyOut: Currency,
   parts: TPool[],
   maxHops: number,
-  shouldEnableMixedRouteEthWeth?: boolean
+  shouldEnableMixedRouteEthWeth?: boolean,
+  hooksOptions?: HooksOptions
 ): MixedRoute[] {
+  // first we need to filter non v4-pools
+  const filteredPools: TPool[] =
+    !hooksOptions || hooksOptions === HooksOptions.HOOKS_INCLUSIVE
+      ? parts
+      : parts.filter((pool) => !(pool instanceof V4Pool));
+
+  if (hooksOptions === HooksOptions.HOOKS_ONLY) {
+    // we need to filter out v4-pools with hooks
+    // then concat the v4-pools with hooks
+    const v4HookslessPools = parts.filter(
+      (pool) => pool instanceof V4Pool && pool.hooks !== ADDRESS_ZERO
+    );
+    parts = filteredPools.concat(v4HookslessPools);
+  }
+
+  if (hooksOptions === HooksOptions.NO_HOOKS) {
+    // we need to filter out v4-pools without hooks
+    // then concat the v4-pools without hooks
+    const v4HookfulPools = parts.filter(
+      (pool) => pool instanceof V4Pool && pool.hooks === ADDRESS_ZERO
+    );
+    parts = filteredPools.concat(v4HookfulPools);
+  }
+
   // only add fake v4 pool, if we see there's a native v4 pool in the candidate pool
   const containsV4NativePools =
     parts.filter(
@@ -92,7 +127,7 @@ export function computeAllMixedRoutes(
     ).length > 0;
   const amendedPools =
     containsV4NativePools && shouldEnableMixedRouteEthWeth
-      ? parts.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId])
+      ? parts.concat(V4_ETH_WETH_FAKE_POOL[currencyIn.chainId as ChainId] ?? [])
       : parts;
   // NOTE: we added a fake v4 pool, in order for mixed route to connect the v3 weth pool with v4 eth pool
   const routesRaw = computeAllRoutes<TPool, MixedRoute, Currency>(
@@ -156,26 +191,11 @@ export function computeAllRoutes<
         (pool) =>
           pool instanceof V4Pool &&
           pool.tickSpacing ===
-            V4_ETH_WETH_FAKE_POOL[tokenIn.chainId as ChainId].tickSpacing
+            V4_ETH_WETH_FAKE_POOL[tokenIn.chainId as ChainId]?.tickSpacing
       ).length > 0;
-    let amendedMaxHops = currentRouteContainsFakeV4Pool ? maxHops + 1 : maxHops;
-
-    const tokenizes = BASE_TOKENIZE_UNDERLYING[tokenIn.chainId as ChainId]?.map(
-      (base) => {
-        return base.tokenize.address.toLocaleLowerCase();
-      }
-    );
-
-    for (const pool of pools) {
-      if (pool instanceof V4Pool) {
-        const tokenize0 =
-          !(pool.token0 as Token).isNative &&
-          tokenizes?.includes((pool.token0 as Token).address.toLowerCase());
-        if (tokenize0) {
-          amendedMaxHops = amendedMaxHops + 1;
-        }
-      }
-    }
+    const amendedMaxHops = currentRouteContainsFakeV4Pool
+      ? maxHops + 1
+      : maxHops;
 
     // amendedMaxHops is the maxHops + 1 if the current route contains a fake v4 pool
     // b/c we want to allow the route to go through the fake v4 pool
@@ -183,7 +203,10 @@ export function computeAllRoutes<
     // https://github.com/Uniswap/mixed-quoter/pull/41/files#diff-a4d1289f264d1da22aac20cc55a9d01c8ba9cccd76ce1af8f952ec9034e7e1aaR189
     // and SOR will use the gas cost from the mixed quoter:
     // https://github.com/Uniswap/smart-order-router/blob/17da523f1af050e6430afb866d96681346c8fb8b/src/routers/alpha-router/gas-models/mixedRoute/mixed-route-heuristic-gas-model.ts#L222
-    if (currentRoute.length > amendedMaxHops) {
+    const conversionHops = currentRoute.filter(
+      (pool) => pool instanceof V4Pool && isTokenizeConversion(pool)
+    ).length;
+    if (currentRoute.length - conversionHops > amendedMaxHops) {
       return;
     }
 
@@ -210,6 +233,15 @@ export function computeAllRoutes<
       const currentTokenOut = curPool.token0.equals(previousTokenOut)
         ? curPool.token1
         : curPool.token0;
+
+      // Conversion edges represent payment/collection, not intermediate PoolManager swaps.
+      if (
+        curPool instanceof V4Pool &&
+        isTokenizeConversion(curPool) &&
+        currentRoute.length !== 0 &&
+        !currentTokenOut.equals(tokenOut)
+      )
+        continue;
 
       if (tokensVisited.has(getAddressLowerCase(currentTokenOut))) {
         continue;

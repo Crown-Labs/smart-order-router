@@ -23,6 +23,7 @@ import {
   computeAllV3Routes,
   computeAllV4Routes,
 } from '../../../../../src/routers/alpha-router/functions/compute-all-routes';
+import { HooksOptions } from '../../../../../src/util/hooksOptions';
 import {
   DAI_ETH_V4_MEDIUM,
   DAI_USDT,
@@ -132,6 +133,133 @@ describe('compute all v4 routes', () => {
       UNI_ETH_V4_MEDIUM,
     ];
     const routes = computeAllV4Routes(USDC, USDT, pools, 3);
+
+    expect(routes).toHaveLength(1);
+  });
+
+  test('succeeds to compute hook inclusive routes', async () => {
+    const pools = [
+      USDC_DAI_V4_LOW,
+      USDC_DAI_V4_MEDIUM,
+      USDC_WETH_V4_LOW,
+      WETH9_USDT_V4_LOW,
+      DAI_USDT_V4_LOW,
+      new V4Pool(
+        USDT,
+        WBTC,
+        FeeAmount.LOW,
+        10,
+        '0x00001f3b9712708127b1fcad61cb892535951888',
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      new V4Pool(
+        USDT,
+        WBTC,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+    ];
+    const routes = computeAllV4Routes(
+      USDC,
+      WBTC,
+      pools,
+      3,
+      HooksOptions.HOOKS_INCLUSIVE
+    );
+
+    expect(routes).toHaveLength(6);
+  });
+
+  test('succeeds to compute no hooks routes', async () => {
+    const pools = [
+      USDC_DAI_V4_LOW,
+      USDC_DAI_V4_MEDIUM,
+      USDC_WETH_V4_LOW,
+      WETH9_USDT_V4_LOW,
+      DAI_USDT_V4_LOW,
+      new V4Pool(
+        USDT,
+        WBTC,
+        FeeAmount.LOW,
+        10,
+        '0x00001f3b9712708127b1fcad61cb892535951888',
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      new V4Pool(
+        USDT,
+        WBTC,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+    ];
+    const routes = computeAllV4Routes(
+      USDC,
+      WBTC,
+      pools,
+      3,
+      HooksOptions.NO_HOOKS
+    );
+
+    expect(routes).toHaveLength(3);
+  });
+
+  test('succeeds to compute hooks only routes', async () => {
+    const pools = [
+      USDC_DAI_V4_LOW,
+      USDC_DAI_V4_MEDIUM,
+      USDC_WETH_V4_LOW,
+      WETH9_USDT_V4_LOW,
+      DAI_USDT_V4_LOW,
+      new V4Pool(
+        USDT,
+        USDC,
+        FeeAmount.LOW,
+        10,
+        '0x00001f3b9712708127b1fcad61cb892535951888',
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      new V4Pool(
+        USDT,
+        WBTC,
+        FeeAmount.LOW,
+        10,
+        '0x00001f3b9712708127b1fcad61cb892535951888',
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      new V4Pool(
+        USDT,
+        WBTC,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+    ];
+    const routes = computeAllV4Routes(
+      USDC,
+      WBTC,
+      pools,
+      3,
+      HooksOptions.HOOKS_ONLY
+    );
 
     expect(routes).toHaveLength(1);
   });
@@ -351,7 +479,7 @@ describe('compute all mixed routes', () => {
     routes.forEach((route) => {
       expect(route.pools).toEqual([
         USDC_WETH_LOW,
-        V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET],
+        V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET]!,
         ETH_USDT_V4_LOW,
       ]);
       expect(route.path).toEqual([
@@ -385,7 +513,7 @@ describe('compute all mixed routes', () => {
     routes.forEach((route) => {
       expect(route.pools).toEqual([
         ETH_USDT_V4_LOW,
-        V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET],
+        V4_ETH_WETH_FAKE_POOL[ChainId.MAINNET]!,
         USDC_WETH_LOW,
       ]);
       expect(route.path).toEqual([
@@ -406,6 +534,114 @@ describe('compute all mixed routes', () => {
     const pools = [ETH_USDT_V4_LOW, USDC_WETH_LOW];
     const routes = computeAllMixedRoutes(USDT, USDC, pools, 2, false);
     expect(routes.length).toEqual(0);
+  });
+
+  test('succeeds to compute hook inclusive routes', async () => {
+    const pools = [
+      DAI_USDT,
+      new V4Pool(
+        USDC,
+        DAI,
+        FeeAmount.LOW,
+        10,
+        '0x00001f3b9712708127b1fcad61cb892535951888',
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      new V4Pool(
+        USDC,
+        DAI,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+    ];
+    const routes = computeAllMixedRoutes(
+      USDC,
+      USDT,
+      pools,
+      3,
+      true,
+      HooksOptions.HOOKS_INCLUSIVE
+    );
+
+    expect(routes).toHaveLength(2);
+  });
+
+  test('succeeds to compute no hooks routes', async () => {
+    const pools = [
+      DAI_USDT,
+      new V4Pool(
+        USDC,
+        DAI,
+        FeeAmount.LOW,
+        10,
+        '0x00001f3b9712708127b1fcad61cb892535951888',
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      new V4Pool(
+        USDC,
+        DAI,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+    ];
+    const routes = computeAllMixedRoutes(
+      USDC,
+      USDT,
+      pools,
+      3,
+      true,
+      HooksOptions.NO_HOOKS
+    );
+
+    expect(routes).toHaveLength(1);
+  });
+
+  test('succeeds to compute hooks only routes', async () => {
+    const pools = [
+      DAI_USDT,
+      new V4Pool(
+        USDC,
+        DAI,
+        FeeAmount.LOW,
+        10,
+        '0x00001f3b9712708127b1fcad61cb892535951888',
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+      new V4Pool(
+        USDC,
+        DAI,
+        FeeAmount.LOW,
+        10,
+        ADDRESS_ZERO,
+        encodeSqrtRatioX96(1, 1),
+        500,
+        0
+      ),
+    ];
+    const routes = computeAllMixedRoutes(
+      USDC,
+      USDT,
+      pools,
+      3,
+      true,
+      HooksOptions.HOOKS_ONLY
+    );
+
+    expect(routes).toHaveLength(1);
   });
 });
 

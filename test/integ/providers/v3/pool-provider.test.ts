@@ -24,7 +24,7 @@ describe('PoolProvider', () => {
     const poolProvider = new V3PoolProvider(ChainId.MAINNET, multicallProvider);
     const currencyPairs: Array<[Token, Token, number]> = new Array([
       USDC_MAINNET,
-      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET],
+      WRAPPED_NATIVE_CURRENCY[ChainId.MAINNET]!,
       FeeAmount.LOW,
     ]);
     const poolAccessor = await poolProvider.getPools(currencyPairs, {

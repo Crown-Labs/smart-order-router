@@ -1,13 +1,9 @@
 import { ChainId, Token } from '@kittycorn-labs/sdk-core';
 import _ from 'lodash';
+import { getWrappedNativeCurrency } from '../util/chains';
 
 import { ITokenValidator__factory } from '../types/other/factories/ITokenValidator__factory';
-import {
-  log,
-  metric,
-  MetricLoggerUnit,
-  WRAPPED_NATIVE_CURRENCY,
-} from '../util';
+import { log, metric, MetricLoggerUnit } from '../util';
 
 import { ICache } from './cache';
 import { IMulticallProvider } from './multicall-provider';
@@ -67,7 +63,7 @@ export class TokenValidatorProvider implements ITokenValidatorProvider {
     private amountToFlashBorrow = AMOUNT_TO_FLASH_BORROW,
     private allowList = DEFAULT_ALLOWLIST
   ) {
-    this.BASES = [WRAPPED_NATIVE_CURRENCY[this.chainId]!.address];
+    this.BASES = [getWrappedNativeCurrency(this.chainId)!.address];
   }
 
   public async validateTokens(
