@@ -36,11 +36,13 @@ npm install --ignore-scripts ../sdks/.sdk-packages/*.tgz
 
 ## Quote current Base Sepolia pools
 
-Set `JSON_RPC_PROVIDER_BASE_SEPOLIA` in your shell, then:
+Set `JSON_RPC_PROVIDER_BASE_SEPOLIA` in this repository's `.env` or your shell, then:
 
 ```sh
 make quote
 ```
+
+The CLI loads `smart-order-router/.env`; exported variables take precedence over matching keys in that file. `RPC_BASE_SEPOLIA_FORK_URL` is also accepted when `JSON_RPC_PROVIDER_BASE_SEPOLIA` is empty. `.env.example` lists the supported settings. No private key is required, and the CLI does not load the sibling contracts repository's `.env`.
 
 This reads a quote at one block. It never signs or broadcasts. `DEBUG_ROUTING=true` enables diagnostic logs; provider diagnostics may include RPC information, so do not share them unredacted.
 

@@ -2,13 +2,19 @@ import { JsonRpcProvider } from '@ethersproject/providers';
 import { Protocol } from '@kittycorn-labs/router-sdk';
 import { CurrencyAmount, TradeType } from '@kittycorn-labs/sdk-core';
 import bunyan from 'bunyan';
+import 'dotenv/config';
 import { AlphaRouter, setGlobalLogger } from '../src';
 import { KITTYCORN_BASE_SEPOLIA as config } from '../src/util/tokenize';
 
 /** Read a quote against the current deployment at one pinned block; never sign or broadcast. */
 async function main() {
-  const rpc = process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA;
-  if (!rpc) throw new Error('Set JSON_RPC_PROVIDER_BASE_SEPOLIA');
+  const rpc =
+    process.env.JSON_RPC_PROVIDER_BASE_SEPOLIA ||
+    process.env.RPC_BASE_SEPOLIA_FORK_URL;
+  if (!rpc)
+    throw new Error(
+      'Set JSON_RPC_PROVIDER_BASE_SEPOLIA or RPC_BASE_SEPOLIA_FORK_URL in smart-order-router/.env or your shell'
+    );
   const provider = new JsonRpcProvider(rpc, config.chainId);
   const network = await provider.getNetwork();
   if (network.chainId !== config.chainId)
