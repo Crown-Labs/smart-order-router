@@ -46,6 +46,8 @@ The CLI loads `smart-order-router/.env`; exported variables take precedence over
 
 This reads a quote at one block. It never signs or broadcasts. `DEBUG_ROUTING=true` enables diagnostic logs; provider diagnostics may include RPC information, so do not share them unredacted.
 
+`routeString:` uses the original full path format, for example `[V4] 100.00% = USDC -- 0% [conversion]tUSDC -- 0.01% [pool ID]tUSDT -- 0% [conversion]USDT`. The actual log prints complete 32-byte IDs: zero for synthetic conversion edges and the real PoolManager ID for AMM pools. Split legs are comma-separated with their percentages. It does not collapse a Tokenize path to just `USDC -> USDT`.
+
 For executable parameters:
 
 ```ts
@@ -73,6 +75,8 @@ const result = await router.route(
 ```
 
 The new Universal Router requires token approval to Permit2 plus Permit2 spender approval to the new router. Direct KittycornRouter uses ordinary ERC20 approval and has no deadline argument. Native ETH and direct tToken endpoints are not supported by this Kittycorn builder; use underlying ERC20s. Standard SDK builders reject Tokenize conversion edges rather than encoding them as real pools.
+
+`SwapType.KITTYCORN` defaults to V4 discovery and rejects explicitly requested V2/V3/mixed protocols before RPC work, because those routes cannot be encoded by the Kittycorn action router. `distributionPercent` must be an integer from 1 to 100; the full-size 100% quote is always included even when the increment does not divide 100.
 
 ## Tokenize bootstrap volume
 

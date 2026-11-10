@@ -15,11 +15,25 @@
 
 ## Validation
 
-- SDK: 2,181 passing tests, 4 pre-existing skips.
-- Universal Router: 65 passing offline tests, including 256 funding/refund fuzz runs; deployed runtime fits EIP-170.
-- SOR: 325 passing offline tests (2 pre-existing skips), full offline unit suite, TypeScript library/CLI builds, a clean `npm ci`, packaged CJS/SDK ESM imports, and installation into a separate consumer directory.
+- SDK: 2,185 passing tests, 4 pre-existing skips.
+- Universal Router: 71 passing offline tests, including 256 funding/refund fuzz runs; deployed runtime fits EIP-170.
+- SOR: 346 passing offline tests (2 pre-existing skips), full offline unit suite, TypeScript library/CLI builds, a clean `npm ci`, packaged CJS/SDK ESM imports, and installation into a separate consumer directory.
 - Base Sepolia fork: all six USDC/USDT/WETH directions, exact input/output, direct action router and new Universal Router (24 executions). Additional executions cover a 95% ordinary-pool / 5% Tokenize split and all-Tokenize routes through real Permit2.
 - Deployment script simulation and `make deploy-check` run against the local newly deployed Universal Router. Snapshot state is restored; no public transactions or npm publishes were performed.
+
+## Follow-up review — route display and all three repositories
+
+- Restored the original full `routeString:` format, including every underlying/share hop, protocol, percentage, fee and pool ID. Only exact registered conversion identities and the native wrapping sentinel display a zero ID; real pools containing a Tokenize still show their actual ID. A read-only quote at block 56998602 returned 1 USDC → 1.000718 USDT through tUSDC/tUSDT (100%, 0.01% AMM fee).
+- Reproduced a missed Tokenize preference in both exact-input and exact-output searches: the best gas-ranked complementary candidate could exceed the raw-price budget while a later candidate satisfied it. Both regression tests failed before the fix. Budget filtering now occurs before selecting that complementary leg; the configured default 5% preference and 50-bps total quote-loss cap are unchanged.
+- Invalid `distributionPercent=0` could loop indefinitely; non-divisor increments such as 30 omitted the 100% unsplit quote. Validate integer increments 1–100 and always include 100%.
+- `SwapType.KITTYCORN` could search unsupported protocols when the caller omitted `protocols`. Default it to V4 and reject explicit incompatible protocols/chains before RPC work. The fork matrix deliberately omits the protocol override to validate this behavior. RPC lookup and the CLI now share the same Base Sepolia environment-variable aliases.
+- SDK split minima could lose up to one raw unit per additional leg through independent rounding. A two-leg quote of 101 + 101 with 1% slippage encoded 99 + 99, below the reported 199-unit minimum. The regression failed before the fix. Cumulative rounding now preserves the aggregate minimum; tests cover two/three legs and 0%, 1%, 25%, 99% slippage, with each minimum bounded by its leg's quote. SOR pins the corrected SDK commit and tarball integrity.
+- Universal Router review added six tests for nested payer/refund context, multi-command rollback, allowed sub-plan failure, direct failure flags, cross-token funding isolation and uint160 overflow. These passed without a contract change. A clean Foundry rebuild matches the recorded compiler-audit creation/runtime hashes; runtime remains 24,193 bytes. The stale deleted-source artifact was removed by `forge clean`.
+- Reviewed maintained source differences from pinned upstream, ERC4626 registration/rate reads, endpoint conversion rules, pool reuse, slippage/funding/refunds, deployment configuration, ABI snapshots, build/pack scripts and manual release workflows. All six SDK tarballs and SOR were installed into a fresh consumer directory: CJS imports for all seven and native Node ESM imports for all six SDKs passed. Dependency audit findings remain as documented below.
+- Re-ran all 24 actual swap executions on a dedicated local fork of Base Sepolia block 56998593: all six token directions, both trade types, both executors. Snapshot restoration succeeded. The older 345-measurement liquidity report below remains historical evidence at its recorded block; it was not rerun or relabeled as a new sweep.
+- Eight additional executions passed with the documented test-only price-budget override. USDT → USDC used 95% ordinary liquidity / 5% Tokenize for both exact-input and exact-output, through both routers; USDT → WETH used 100% Tokenize. All balance/aggregate-slippage/allowance assertions and final snapshot restoration passed. Total follow-up execution coverage: 32 successful swaps, zero failures.
+
+This is a source/integration review with regression and execution tests, not a formal audit guarantee. Upstream fork suites and unconfigured pools/chains remain outside the executed coverage.
 
 ## Remaining boundaries
 
