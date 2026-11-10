@@ -1353,6 +1353,18 @@ export class AlphaRouter
     swapConfig?: SwapOptions,
     partialRoutingConfig: Partial<AlphaRouterConfig> = {}
   ): Promise<SwapRoute | null> {
+    // The Kittycorn action encoder only supports V4. Limit discovery before any
+    // RPC calls instead of finding a V2/V3 winner that cannot be encoded.
+    if (swapConfig?.type === SwapType.KITTYCORN) {
+      if (this.chainId !== KITTYCORN_BASE_SEPOLIA.chainId)
+        throw new Error('Kittycorn supports only Base Sepolia');
+      if (partialRoutingConfig.protocols?.some((p) => p !== Protocol.V4))
+        throw new Error('Kittycorn requires V4 routes');
+      partialRoutingConfig = {
+        ...partialRoutingConfig,
+        protocols: [Protocol.V4],
+      };
+    }
     const originalAmount = amount;
 
     const { currencyIn, currencyOut } =
@@ -3368,7 +3380,13 @@ export class AlphaRouter
       tokenizeRoutePercent > 100
     )
       throw new Error('tokenizeRoutePercent must be an integer from 0 to 100');
-    const sizes = new Set<number>();
+    if (
+      !Number.isInteger(distributionPercent) ||
+      distributionPercent <= 0 ||
+      distributionPercent > 100
+    )
+      throw new Error('distributionPercent must be an integer from 1 to 100');
+    const sizes = new Set<number>([100]);
     for (let i = 1; i <= 100 / distributionPercent; i++)
       sizes.add(i * distributionPercent);
     if (this.chainId === ChainId.BASE_SEPOLIA && tokenizeRoutePercent > 0) {

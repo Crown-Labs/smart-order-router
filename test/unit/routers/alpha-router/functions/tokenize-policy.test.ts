@@ -153,3 +153,81 @@ describe('Tokenize bootstrap volume policy', () => {
     expect(isTokenizeRoute(tokenized)).toBe(true);
   });
 });
+
+describe('Tokenize complementary-leg price budget', () => {
+  test.each([TradeType.EXACT_INPUT, TradeType.EXACT_OUTPUT])(
+    'finds an in-budget split behind two cheaper-gas, out-of-budget candidates (%s)',
+    async (type) => {
+      const exactIn = type === TradeType.EXACT_INPUT;
+      const specified = exactIn ? a!.underlying : b!.underlying;
+      const quoteToken = exactIn ? b!.underlying : a!.underlying;
+      const rows: [V4Route, number, number, number][] = [
+        [plain, 100, 10000, 0],
+        [plain, 95, 9500, 0],
+        ...[100, 500, 3000].map(
+          (fee, index): [V4Route, number, number, number] => [
+            new V4Route(
+              [
+                conversions[0]!,
+                new Pool(
+                  a!.tokenize,
+                  b!.tokenize,
+                  fee,
+                  fee === 100 ? 1 : fee === 500 ? 10 : 60,
+                  zero,
+                  price,
+                  '1000000',
+                  0
+                ),
+                conversions[1]!,
+              ],
+              a!.underlying,
+              b!.underlying
+            ),
+            5,
+            exactIn ? [400, 410, 480][index]! : [600, 590, 520][index]!,
+            index === 2 ? 100 : 0,
+          ]
+        ),
+      ];
+      const quotes = rows.map(
+        ([route, percent, rawQuote, gas]) =>
+          new V4RouteWithValidQuote({
+            route,
+            percent,
+            amount: CurrencyAmount.fromRawAmount(specified, percent * 100),
+            rawQuote: BigNumber.from(rawQuote),
+            quoteToken,
+            tradeType: type,
+            sqrtPriceX96AfterList: [],
+            initializedTicksCrossedList: [],
+            quoterGasEstimate: BigNumber.from(0),
+            gasModel: {
+              estimateGasCost: () => ({
+                gasEstimate: BigNumber.from(0),
+                gasCostInToken: CurrencyAmount.fromRawAmount(quoteToken, gas),
+                gasCostInUSD: CurrencyAmount.fromRawAmount(a!.underlying, 0),
+              }),
+            },
+            v4PoolProvider: provider,
+          })
+      );
+      const result = await getBestSwapRoute(
+        CurrencyAmount.fromRawAmount(specified, 10000),
+        [5, 95, 100],
+        quotes,
+        type,
+        84532,
+        { ...DEFAULT_ROUTING_CONFIG_BY_CHAIN(84532), maxSplits: 2 },
+        new PortionProvider()
+      );
+      expect(result!.routes).toHaveLength(2);
+      expect(result!.routes.find((r) => r.percent === 5)!.route).toBe(
+        rows[4]![0]
+      );
+      expect(result!.quote.quotient.toString()).toBe(
+        exactIn ? '9980' : '10020'
+      );
+    }
+  );
+});

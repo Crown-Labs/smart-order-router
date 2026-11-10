@@ -1,4 +1,3 @@
-import { Protocol } from '@kittycorn-labs/router-sdk';
 import { CurrencyAmount, Percent, TradeType } from '@kittycorn-labs/sdk-core';
 import { buildKittycornUniversalMethodParameters } from '@kittycorn-labs/universal-router-sdk';
 import { KITTYCORN_BASE_SEPOLIA as config } from '@kittycorn-labs/v4-sdk';
@@ -153,7 +152,6 @@ async function main() {
             options,
             {
               blockNumber,
-              protocols: [Protocol.V4],
               maxSwapsPerPath: 2,
               maxSplits: 2,
               distributionPercent: 50,

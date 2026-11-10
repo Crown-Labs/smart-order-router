@@ -430,7 +430,12 @@ export async function getBestSwapRouteBy(
         const candidateRoutesA = percentToSortedQuotes[percentA]!.filter(
           (route) =>
             remainingPercent !== percentA ||
-            tokenizePercent([...curRoutes, route]) >= requiredTokenizePercent
+            (tokenizePercent([...curRoutes, route]) >=
+              requiredTokenizePercent &&
+              (!policyQuoteLimit ||
+                withinPolicyBudget(
+                  sumFn([...curRoutes, route].map((leg) => leg.quote))
+                )))
         );
 
         // Find the best route in the complimentary percentage that doesn't re-use a pool already
