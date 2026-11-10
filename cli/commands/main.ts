@@ -40,103 +40,13 @@ dotenv.config();
 const RPC_URL: { [key: number]: string } = {
   1: `${process.env.JSON_RPC_PROVIDER}`,
   56: `${process.env.JSON_RPC_PROVIDER_BNB}`,
+  42161: `${process.env.JSON_RPC_PROVIDER_ARBITRUM_ONE}`,
   11155111: `${process.env.JSON_RPC_PROVIDER_SEPOLIA}`,
 };
 
 async function main() {
-  // const payload = {
-  //   amount: '1000000000000000000',
-  //   gasStrategies: [
-  //     {
-  //       limitInflationFactor: 1.15,
-  //       displayLimitInflationFactor: 1.15,
-  //       priceInflationFactor: 1.5,
-  //       percentileThresholdFor1559Fee: 75,
-  //       minPriorityFeeGwei: 2,
-  //       maxPriorityFeeGwei: 9,
-  //     },
-  //   ],
-  //   swapper: '0xd7e7d82374b94a1d807C9bfb10Ce311335Cb39f3',
-  //   tokenIn: '0x0000000000000000000000000000000000000000',
-  //   tokenInChainId: 11155111,
-  //   tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
-  //   tokenOutChainId: 11155111,
-  //   type: 'EXACT_INPUT',
-  //   urgency: 'normal',
-  //   protocols: ['V3'],
-  //   autoSlippage: 'DEFAULT',
-  // };
-
-  // const payload = {
-  //   amount: '1000000000000000000',
-  //   gasStrategies: [
-  //     {
-  //       limitInflationFactor: 1.15,
-  //       displayLimitInflationFactor: 1.15,
-  //       priceInflationFactor: 1.5,
-  //       percentileThresholdFor1559Fee: 75,
-  //       minPriorityFeeGwei: 2,
-  //       maxPriorityFeeGwei: 9,
-  //     },
-  //   ],
-  //   swapper: '0xd7e7d82374b94a1d807C9bfb10Ce311335Cb39f3',
-  //   tokenIn: '0x0000000000000000000000000000000000000000',
-  //   tokenInChainId: 11155111,
-  //   tokenOut: '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8',
-  //   tokenOutChainId: 11155111,
-  //   type: 'EXACT_INPUT',
-  //   urgency: 'normal',
-  //   protocols: ['V3'],
-  //   autoSlippage: 'DEFAULT',
-  // };
-
-  // const payload = {
-  //   amount: '11000000000000000000',
-  //   gasStrategies: [
-  //     {
-  //       limitInflationFactor: 1.15,
-  //       displayLimitInflationFactor: 1.15,
-  //       priceInflationFactor: 1.5,
-  //       percentileThresholdFor1559Fee: 75,
-  //       minPriorityFeeGwei: 2,
-  //       maxPriorityFeeGwei: 9,
-  //     },
-  //   ],
-  //   swapper: '0xfff0BF131DAEa9bA4e97829D2d3043aaef3213ff',
-  //   tokenIn: '0x0000000000000000000000000000000000000000',
-  //   tokenInChainId: 1,
-  //   tokenOut: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-  //   tokenOutChainId: 1,
-  //   type: 'EXACT_INPUT',
-  //   urgency: 'normal',
-  //   protocols: ['V3'],
-  //   autoSlippage: 'DEFAULT',
-  // };
-
-  // const payload = {
-  //   amount: '10000000',
-  //   gasStrategies: [
-  //     {
-  //       limitInflationFactor: 1.15,
-  //       displayLimitInflationFactor: 1.15,
-  //       priceInflationFactor: 1.5,
-  //       percentileThresholdFor1559Fee: 75,
-  //       minPriorityFeeGwei: 2,
-  //       maxPriorityFeeGwei: 9,
-  //     },
-  //   ],
-  //   swapper: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
-  //   tokenIn: '0x29f2D40B0605204364af54EC677bD022dA425d03', // WBTC
-  //   tokenInChainId: 11155111,
-  //   tokenOut: '0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5', // LINK
-  //   tokenOutChainId: 11155111,
-  //   type: 'EXACT_OUTPUT',
-  //   urgency: 'normal',
-  //   protocols: ['V2', 'V3', 'V4'],
-  // };
-
   const payload = {
-    amount: '10000000',
+    amount: '1000000000',
     gasStrategies: [
       {
         limitInflationFactor: 1.15,
@@ -148,77 +58,19 @@ async function main() {
       },
     ],
     swapper: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
-    tokenIn: '0x29f2D40B0605204364af54EC677bD022dA425d03', // WBTC
-    tokenInChainId: 11155111,
-    tokenOut: '0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c', // WETH
-    tokenOutChainId: 11155111,
+    tokenIn: '0x0000000000000000000000000000000000000000',
+    tokenInChainId: 42161,
+    tokenOut: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    tokenOutChainId: 42161,
     type: 'EXACT_OUTPUT',
     urgency: 'normal',
-    protocols: ['V4'],
+    protocols: ['V3', 'V4'],
   };
-
-  // const payload = {
-  //   amount: '10000000',
-  //   gasStrategies: [
-  //     {
-  //       limitInflationFactor: 1.15,
-  //       displayLimitInflationFactor: 1.15,
-  //       priceInflationFactor: 1.5,
-  //       percentileThresholdFor1559Fee: 75,
-  //       minPriorityFeeGwei: 2,
-  //       maxPriorityFeeGwei: 9,
-  //     },
-  //   ],
-  //   swapper: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
-  //   tokenIn: '0x29f2D40B0605204364af54EC677bD022dA425d03', // WBTC
-  //   tokenInChainId: 11155111,
-  //   tokenOut: '0x0000000000000000000000000000000000000000', // ETH
-  //   tokenOutChainId: 11155111,
-  //   type: 'EXACT_OUTPUT',
-  //   urgency: 'normal',
-  //   protocols: ['V4'],
-  // };
-
-  // const payload = {
-  //   amount: '1000000000000000000',
-  //   gasStrategies: [
-  //     {
-  //       limitInflationFactor: 1.15,
-  //       displayLimitInflationFactor: 1.15,
-  //       priceInflationFactor: 1.5,
-  //       percentileThresholdFor1559Fee: 75,
-  //       minPriorityFeeGwei: 2,
-  //       maxPriorityFeeGwei: 9,
-  //     },
-  //   ],
-  //   swapper: '0xAAAA44272dc658575Ba38f43C438447dDED45358',
-  //   tokenIn: '0xC558DBdd856501FCd9aaF1E62eae57A9F0629a3c', // WETH
-  //   tokenInChainId: 11155111,
-  //   tokenOut: '0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5', // LINK
-  //   tokenOutChainId: 11155111,
-  //   type: 'EXACT_OUTPUT',
-  //   urgency: 'normal',
-  //   // protocols: ['V2', 'V3', 'V4'],
-  //   protocols: ['V4'],
-  // };
 
   const swapRoutes = await getQuote(payload);
 
   if (swapRoutes) {
-    const {
-      // blockNumber,
-      // estimatedGasUsed,
-      // estimatedGasUsedQuoteToken,
-      // estimatedGasUsedUSD,
-      // estimatedGasUsedGasToken,
-      // gasPriceWei,
-      // methodParameters,
-      // quote,
-      quoteGasAdjusted,
-      route: routeAmounts,
-      // simulationStatus,
-      trade,
-    } = swapRoutes;
+    const { quoteGasAdjusted, route: routeAmounts, trade } = swapRoutes;
 
     const routeString = routeAmountsToString(routeAmounts);
     console.log('routeString:', routeString);
@@ -230,18 +82,12 @@ async function main() {
     console.log('inputAmount:', trade.inputAmount.toExact());
     console.log('outputAmount:', trade.outputAmount.toExact());
     console.log('quoteGasAdjusted:', quoteGasAdjusted.toExact());
-
-    // console.log(
-    //   'value:',
-    //   currencyIn.isNative ? trade.inputAmount.quotient.toString() : '0'
-    // );
   } else {
     console.log('No swap routes found');
   }
 }
 
 async function getQuote(payload: any) {
-  // Parse parameters
   const chainId = ID_TO_CHAIN_ID(payload.tokenInChainId);
   const tradeType =
     payload.type === 'EXACT_OUTPUT'
@@ -252,7 +98,6 @@ async function getQuote(payload: any) {
   const amountRaw = payload.amount;
   const protocolsStr = payload.protocols;
 
-  // Initialize providers
   const rpcUrl = RPC_URL[Number(payload.tokenInChainId)];
   if (!rpcUrl) {
     throw new Error(
@@ -275,7 +120,6 @@ async function getQuote(payload: any) {
 
   const multicall2Provider = new UniswapMulticallProvider(chainId, provider);
 
-  // Initialize tokenProvider
   const tokenProviderOnChain = new TokenProvider(chainId, multicall2Provider);
   const tokenProvider = new CachingTokenProviderWithFallback(
     chainId,
@@ -285,7 +129,6 @@ async function getQuote(payload: any) {
   );
 
   const currencyIn: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
-    // Replace to support old native eth address
     tokenInAddress.replace(
       '0x0000000000000000000000000000000000000000',
       '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
@@ -297,7 +140,6 @@ async function getQuote(payload: any) {
       )!;
 
   const currencyOut: Currency = NATIVE_NAMES_BY_ID[chainId]!.includes(
-    // Replace to support old native eth address
     tokenOutAddress.replace(
       '0x0000000000000000000000000000000000000000',
       '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
@@ -317,7 +159,6 @@ async function getQuote(payload: any) {
     new NodeCache({ stdTTL: 15, useClones: true })
   );
 
-  // New AlphaRouter
   const router = new AlphaRouter({
     provider,
     chainId,
@@ -338,19 +179,35 @@ async function getQuote(payload: any) {
     ...{
       blockNumber: blockNumber,
       protocols,
-      maxSwapsPerPath: 6,
-      minSplits: 1,
-      maxSplits: 5,
-      distributionPercent: 5,
-      debugRouting: false,
-      v4PoolSelection: {
-        topN: 10, // Scale topN
+      v2PoolSelection: {
+        topN: 3,
+        topNDirectSwaps: 1,
+        topNTokenInOut: 5,
+        topNSecondHop: 2,
+        topNWithEachBaseToken: 2,
+        topNWithBaseToken: 6,
+      },
+      v3PoolSelection: {
+        topN: 2,
         topNDirectSwaps: 2,
         topNTokenInOut: 2,
-        topNSecondHop: 5, // Scale topNSecondHop
+        topNSecondHop: 1,
         topNWithEachBaseToken: 3,
-        topNWithBaseToken: 3,
+        topNWithBaseToken: 2,
       },
+      v4PoolSelection: {
+        topN: 2,
+        topNDirectSwaps: 2,
+        topNTokenInOut: 2,
+        topNSecondHop: 1,
+        topNWithEachBaseToken: 3,
+        topNWithBaseToken: 2,
+      },
+      maxSwapsPerPath: 2,
+      minSplits: 1,
+      maxSplits: 7,
+      distributionPercent: 25,
+      forceCrossProtocol: false,
     },
   };
 

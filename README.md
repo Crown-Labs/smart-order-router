@@ -306,3 +306,9 @@ This total amount of gas each `eth_call` can consume is equal to the `multicallC
 If you are running your own node, we recommend you configure start your node with a higher gas limit per call. For example, on Geth you can use the command line argument `--rpc.gascap 150000000` to raise the limit to 150m, which is enough to run the default configuration of this package.
 
 If you are using Hardhat mainnet forking, you should add `blockGasLimit: 150_000_000` to your Hardhat config to use the default package configuration.
+
+### Developing the Kittycorn V4 SDK locally
+
+For local SDK development, temporarily point `@kittycorn-labs/v4-sdk` in
+`package.json` to `file:../sdks/sdks/v4-sdk`, build that SDK, and reinstall
+dependencies. Restore the published dependency before committing a release.

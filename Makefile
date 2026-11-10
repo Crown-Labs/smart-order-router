@@ -13,6 +13,9 @@ mainnet-v4-tusdt-tusdc:
 arbitrum-v4-eth-usdc:
 	./bin/cli quote --tokenIn 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee --tokenOut 0xaf88d065e77c8cC2239327C5EDb3A432268e5831 --amount 1 --exactIn --minSplits 1 --protocols v3,v4 --router alpha --chainId 42161 $(p)
 
+arbitrum-v4-eth-usdc2:
+	./bin/cli quote --tokenIn 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee --tokenOut 0xaf88d065e77c8cC2239327C5EDb3A432268e5831 --amount 0.0001 --exactOut --minSplits 1 --protocols v4 --router alpha --chainId 42161 $(p)
+
 sepolia-v4-eth-link:
 	./bin/cli quote --tokenIn 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee --tokenOut 0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5 --amount 0.01 --exactIn --minSplits 1 --protocols v4 --router alpha --chainId 11155111 $(p)	
 
