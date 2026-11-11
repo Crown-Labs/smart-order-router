@@ -34,7 +34,8 @@
     "check:abis": "node scripts/abis.js",
     "check:liquidity": "ts-node cli/check-liquidity.ts",
     "clean": "node -e \"for (const dir of ['build', 'src/types']) require('fs').rmSync(dir, {recursive:true,force:true})\"",
-    "sdk:update": "node scripts/update-sdk.js"
+    "sdk:update": "node scripts/update-sdk.js",
+    "test:compat": "jest --maxWorkers=2 test/unit/util/kittycorn-method-parameters.test.ts test/unit/providers/v4/kittycorn.test.ts test/unit/routers/alpha-router/functions/tokenize-policy.test.ts test/unit/routers/alpha-router/functions/amount-distribution.test.ts"
   },
   "engines": {
     "node": ">=22"
