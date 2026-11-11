@@ -11,22 +11,10 @@ jobs:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
         with:
           path: smart-order-router
-      - id: sdk
-        run: echo "ref=$(cat smart-order-router/.sdk-ref)" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
-        with:
-          repository: Crown-Labs/sdks
-          ref: ${{ steps.sdk.outputs.ref }}
-          path: sdks
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-      - uses: oven-sh/setup-bun@ecf28ddc73e819eb6fa29df6b34ef8921c743461
-        with:
-          bun-version: 1.3.10
-      - run: bun install --frozen-lockfile --ignore-scripts && bun run g:build && bun run g:pack
-        working-directory: sdks
       - run: npm ci --ignore-scripts
         working-directory: smart-order-router
       - run: npm run check:abis && npm audit --audit-level=moderate

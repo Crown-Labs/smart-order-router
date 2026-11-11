@@ -14,7 +14,10 @@ try {
     const installed = JSON.parse(
       fs.readFileSync(path.join(root, 'node_modules', name, 'package.json'))
     );
-    pkg.dependencies[name] = installed.version;
+    if (pkg.dependencies[name] !== installed.version)
+      throw new Error(
+        `SDK mismatch for ${name}: expected ${pkg.dependencies[name]}, installed ${installed.version}. Run npm run sdk:update, then build and test.`
+      );
   }
   delete pkg.scripts;
   delete pkg.devDependencies;

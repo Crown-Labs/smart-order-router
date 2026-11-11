@@ -1,22 +1,12 @@
 # Kittycorn Smart Order Router
 
-Fork of [Uniswap Smart Order Router](https://github.com/Uniswap/smart-order-router), synchronized through `04c7c0b` (4.31.10). Kittycorn package version: **5.0.0**.
+Fork of [Uniswap Smart Order Router](https://github.com/Uniswap/smart-order-router), synchronized through `04c7c0b` (4.31.10). Kittycorn package version: **5.0.2**.
 
 Kittycorn integration supports **Base Sepolia (84532) only**, using the deployed Bank/Router/Quoter and USDC, USDT, WETH from `@kittycorn-labs/v4-sdk`. Obsolete Kittycorn chain/address overrides were removed. Ordinary upstream Uniswap chain support remains available.
 
 ## Install, build, test
 
-Use Node.js 22+ and sibling repositories `sdks`, `smart-order-router`, `universal-router`. Build the SDK revision in `.sdk-ref` before installing SOR. Local tarballs avoid duplicate JSBI instances caused by mixing Bun workspace links with npm.
-
-From `sdks`:
-
-```sh
-bun install --frozen-lockfile --ignore-scripts
-bun run g:build
-bun run g:pack
-```
-
-From `smart-order-router`:
+Use Node.js 22+. SOR consumes the six published Kittycorn SDK packages at exact versions; a sibling SDK checkout is no longer required for installation or CI.
 
 ```sh
 npm ci --ignore-scripts
@@ -26,13 +16,15 @@ npm test -- --maxWorkers=2
 npm run pack:release
 ```
 
-The build removes old `build` and generated `src/types` output, then regenerates TypeChain files before compiling; it does not depend on old generated files in your checkout. `pack:release` writes `.packages/kittycorn-labs-smart-order-router-5.0.0.tgz`, replacing local SDK paths with exact npm versions in a temporary manifest. It does not publish or alter source dependencies. CI checks out the pinned SDK commit, builds its packages, and follows this same workflow.
-
-After changing SDK code, build/pack it, install the new tarballs explicitly, and commit the updated `.sdk-ref` and lockfile:
+After releasing SDK changes, synchronize all six packages and the lockfile with one command:
 
 ```sh
-npm install --ignore-scripts ../sdks/.sdk-packages/*.tgz
+npm run sdk:update
 ```
+
+The command checks npm's latest versions before changing dependencies and stops if the six packages are not aligned yet. To choose a specific complete release, use `npm run sdk:update -- 2.0.1`. `make sdk-update` is an alias. Commit the resulting package.json and package-lock.json.
+
+The build cleans generated output and regenerates TypeChain. Packing validates that installed SDK versions match the declared exact versions. `npm run npm:publish` builds, typechecks and runs tests (including native calldata against installed SDKs) before publishing. CI installs the same locked npm releases; it no longer builds a separate SDK checkout.
 
 ## Quote current Base Sepolia pools
 
@@ -74,7 +66,7 @@ const result = await router.route(
 // Review result.quote and result.route, then send result.methodParameters.
 ```
 
-The new Universal Router requires token approval to Permit2 plus Permit2 spender approval to the new router. Direct KittycornRouter uses ordinary ERC20 approval and has no deadline argument. Native ETH and direct tToken endpoints are not supported by this Kittycorn builder; use underlying ERC20s. Standard SDK builders reject Tokenize conversion edges rather than encoding them as real pools.
+The new Universal Router requires token approval to Permit2 plus Permit2 spender approval to the new router. Direct KittycornRouter uses ordinary ERC20 approval and has no deadline argument. Native ETH is supported with explicit `universalRouter` and `deadline`: use `Ether.onChain(84532)` as the currency. The Universal Router wraps ETH into WETH before pool settlement and unwraps WETH into ETH on output; native input needs no token approval. Direct KittycornRouter execution remains ERC20-only, and direct tToken endpoints are unsupported. Standard SDK builders reject Tokenize conversion edges rather than encoding them as real pools.
 
 `SwapType.KITTYCORN` defaults to V4 discovery and rejects explicitly requested V2/V3/mixed protocols before RPC work, because those routes cannot be encoded by the Kittycorn action router. `distributionPercent` must be an integer from 1 to 100; the full-size 100% quote is always included even when the increment does not divide 100.
 
@@ -100,6 +92,12 @@ In another terminal:
 npm run check:fork
 ```
 
+To check native input/output against an existing router on the local fork (8 cases covering USDC/USDT, both directions and both trade types):
+
+```sh
+CHECK_NATIVE=true CHECK_REQUIRE_TOKENIZE=true CHECK_MAX_QUOTE_LOSS_BPS=500 CHECK_UNIVERSAL_ROUTER=0x02D353c5cA5e316bBd99FAC6a481eB8b778Ea67d npm run check:fork
+```
+
 The check accepts only a localhost Anvil URL (`ANVIL_RPC_URL` can change the port), impersonates the configured funded test wallet locally, deploys the new router, and executes all six token directions with exact input/output through both direct and Universal Router paths. It checks real balances, input/output limits, cleared approvals, and EIP-170 size, then restores its snapshots. This is not a public-chain broadcast.
 
 To exercise a forced Tokenize split even when the testnet's ordinary pool price is far from parity, use this **test-only** loss-budget override:
@@ -112,7 +110,7 @@ Offline unit tests cover the price-loss cap and fallback behavior separately. Th
 
 ## Publish and deploy
 
-Publish the six SDK packages first (`bun run g:release` in `sdks`). Then, after the SOR build/tests above:
+Publish the six SDK packages first (`bun run g:release` in `sdks`), then run `npm run sdk:update` in SOR. SOR 5.0.1 mistakenly pinned SDK 2.0.0; use 5.0.2 for the native fix. After the build/tests above:
 
 ```sh
 npm run npm:publish
@@ -131,6 +129,7 @@ npm login
 bun run g:release
 cd /Users/0xmaxma/Desktop/crown-labs/smart-order-router
 npm ci --ignore-scripts
+npm run sdk:update
 npm run build
 npm run typecheck:cli
 npm test -- --maxWorkers=2
@@ -151,7 +150,7 @@ make deploy chain=base-sepolia broadcast=true wallet=deployer
 make deploy-check chain=base-sepolia router=<new-universal-router-address>
 ```
 
-Replace the final placeholder with the printed deployed address. SDK versions are currently 2.0.0 and SOR is 5.0.0; npm versions are immutable, so use a new version for a subsequent release. The publishing commands above publish real packages, while only the deployment command with `broadcast=true` sends a public transaction.
+Replace the final placeholder with the printed deployed address. SDK versions are currently 2.0.1 and the corrected SOR release is 5.0.2; npm versions are immutable, so use a new version for a subsequent release. The publishing commands above publish real packages, while only the deployment command with `broadcast=true` sends a public transaction.
 
 Alternatively run **Release Kittycorn router** manually in GitHub Actions with `NPM_TOKEN` in the `npm-release` environment. Neither normal pushes nor `pack:release` publish anything.
 

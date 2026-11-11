@@ -1,6 +1,6 @@
 {
   "name": "@kittycorn-labs/smart-order-router",
-  "version": "5.0.0",
+  "version": "5.0.2",
   "description": "Kittycorn Smart Order Router",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
@@ -25,7 +25,7 @@
     "test": "jest test/unit",
     "integ-test": "npm run check:fork",
     "prepare": "husky",
-    "npm:publish": "node scripts/pack.js --publish",
+    "npm:publish": "npm run build && npm run typecheck:cli && npm test -- --maxWorkers=2 && node scripts/pack.js --publish",
     "dev": "ts-node cli/kittycorn.ts",
     "generate-types": "run-s compile-v3-types compile-v2-types compile-router compile-external-types",
     "typecheck:cli": "tsc -p tsconfig.cli.json --noEmit --incremental false",
@@ -33,18 +33,19 @@
     "pack:release": "node scripts/pack.js",
     "check:abis": "node scripts/abis.js",
     "check:liquidity": "ts-node cli/check-liquidity.ts",
-    "clean": "node -e \"for (const dir of ['build', 'src/types']) require('fs').rmSync(dir, {recursive:true,force:true})\""
+    "clean": "node -e \"for (const dir of ['build', 'src/types']) require('fs').rmSync(dir, {recursive:true,force:true})\"",
+    "sdk:update": "node scripts/update-sdk.js"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "@kittycorn-labs/router-sdk": "file:../sdks/.sdk-packages/kittycorn-labs-router-sdk-2.0.0.tgz",
-    "@kittycorn-labs/sdk-core": "file:../sdks/.sdk-packages/kittycorn-labs-sdk-core-2.0.0.tgz",
-    "@kittycorn-labs/universal-router-sdk": "file:../sdks/.sdk-packages/kittycorn-labs-universal-router-sdk-2.0.0.tgz",
-    "@kittycorn-labs/v2-sdk": "file:../sdks/.sdk-packages/kittycorn-labs-v2-sdk-2.0.0.tgz",
-    "@kittycorn-labs/v3-sdk": "file:../sdks/.sdk-packages/kittycorn-labs-v3-sdk-2.0.0.tgz",
-    "@kittycorn-labs/v4-sdk": "file:../sdks/.sdk-packages/kittycorn-labs-v4-sdk-2.0.0.tgz",
+    "@kittycorn-labs/router-sdk": "2.0.1",
+    "@kittycorn-labs/sdk-core": "2.0.1",
+    "@kittycorn-labs/universal-router-sdk": "2.0.1",
+    "@kittycorn-labs/v2-sdk": "2.0.1",
+    "@kittycorn-labs/v3-sdk": "2.0.1",
+    "@kittycorn-labs/v4-sdk": "2.0.1",
     "@types/brotli": "^1.3.4",
     "@uniswap/default-token-list": "^11.13.0",
     "@uniswap/permit2-sdk": "1.4.1",
