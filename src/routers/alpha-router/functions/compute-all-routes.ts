@@ -3,7 +3,10 @@ import { ChainId, Currency, Token } from '@kittycorn-labs/sdk-core';
 import { Pair } from '@kittycorn-labs/v2-sdk';
 import { Pool as V3Pool } from '@kittycorn-labs/v3-sdk';
 import { Pool as V4Pool } from '@kittycorn-labs/v4-sdk';
-import { isTokenizeConversion } from '../../../util/tokenize';
+import {
+  isTokenizeConversion,
+  KITTYCORN_BASE_SEPOLIA,
+} from '../../../util/tokenize';
 
 import {
   getAddressLowerCase,
@@ -38,10 +41,11 @@ export function computeAllV4Routes(
     filteredPools = pools.filter((pool) => pool.hooks === ADDRESS_ZERO);
   }
 
+  const kittycorn = currencyIn.chainId === KITTYCORN_BASE_SEPOLIA.chainId;
   return computeAllRoutes<V4Pool, V4Route, Currency>(
-    currencyIn,
-    currencyOut,
-    (route: V4Pool[], currencyIn: Currency, currencyOut: Currency) => {
+    kittycorn ? currencyIn.wrapped : currencyIn,
+    kittycorn ? currencyOut.wrapped : currencyOut,
+    (route: V4Pool[]) => {
       return new V4Route(route, currencyIn, currencyOut);
     },
     (pool: V4Pool, currency: Currency) => pool.involvesToken(currency),

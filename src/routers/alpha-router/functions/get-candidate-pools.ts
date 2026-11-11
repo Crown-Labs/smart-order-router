@@ -502,6 +502,11 @@ export async function getV4CandidatePools({
   chainId,
   v4PoolParams = getApplicableV4FeesTickspacingsHooks(chainId),
 }: V4GetCandidatePoolsParams): Promise<V4CandidatePools> {
+  // Kittycorn settles WETH; the Universal Router wraps/unwraps native endpoints.
+  if (chainId === KITTYCORN_BASE_SEPOLIA.chainId) {
+    currencyIn = currencyIn.wrapped;
+    currencyOut = currencyOut.wrapped;
+  }
   const {
     blockNumber,
     v4PoolSelection: {

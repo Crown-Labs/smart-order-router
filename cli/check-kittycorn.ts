@@ -1,4 +1,9 @@
-import { CurrencyAmount, Percent, TradeType } from '@kittycorn-labs/sdk-core';
+import {
+  CurrencyAmount,
+  Ether,
+  Percent,
+  TradeType,
+} from '@kittycorn-labs/sdk-core';
 import { buildKittycornUniversalMethodParameters } from '@kittycorn-labs/universal-router-sdk';
 import { KITTYCORN_BASE_SEPOLIA as config } from '@kittycorn-labs/v4-sdk';
 import { strict as assert } from 'assert';
@@ -59,29 +64,31 @@ async function main() {
       'EIP-170 contract size'
     );
     const permit2Address = '0x000000000022D473030F116dDEE9F6B43aC78BA3';
-    const universal = await new ContractFactory(
-      artifact.abi,
-      artifact.bytecode.object,
-      signer
-    ).deploy(
-      {
-        permit2: permit2Address,
-        weth9: config.tokens[2]!.underlying.address,
-        v2Factory: '0x7Ae58f10f7849cA6F5fB71b7f45CB416c9204b1e',
-        v3Factory: '0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24',
-        pairInitCodeHash:
-          '0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f',
-        poolInitCodeHash:
-          '0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54',
-        v4PoolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408',
-        permissionsAdapterFactory: constants.AddressZero,
-        v3NFTPositionManager: '0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2',
-        v4PositionManager: '0x4B2C77d209D3405F41a037Ec6c77F7F5b8e2ca80',
-        spokePool: constants.AddressZero,
-      },
-      config.router,
-      { gasLimit: 12000000 }
-    );
+    const universal = process.env.CHECK_UNIVERSAL_ROUTER
+      ? new Contract(process.env.CHECK_UNIVERSAL_ROUTER, artifact.abi, signer)
+      : await new ContractFactory(
+          artifact.abi,
+          artifact.bytecode.object,
+          signer
+        ).deploy(
+          {
+            permit2: permit2Address,
+            weth9: config.tokens[2]!.underlying.address,
+            v2Factory: '0x7Ae58f10f7849cA6F5fB71b7f45CB416c9204b1e',
+            v3Factory: '0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24',
+            pairInitCodeHash:
+              '0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f',
+            poolInitCodeHash:
+              '0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54',
+            v4PoolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408',
+            permissionsAdapterFactory: constants.AddressZero,
+            v3NFTPositionManager: '0x27F971cb582BF9E50F397e4d29a5C7A34f11faA2',
+            v4PositionManager: '0x4B2C77d209D3405F41a037Ec6c77F7F5b8e2ca80',
+            spokePool: constants.AddressZero,
+          },
+          config.router,
+          { gasLimit: 12000000 }
+        );
     await universal.deployed();
     console.log('LOCAL Universal Router:', universal.address);
     execFileSync(
@@ -123,10 +130,18 @@ async function main() {
       slippageTolerance: new Percent(1, 100),
     };
     let count = 0;
-    for (const input of config.tokens)
-      for (const output of config.tokens) {
+    const currencies = [
+      ...config.tokens.map(({ underlying }) => underlying),
+      Ether.onChain(84532),
+    ];
+    for (const inputCurrency of currencies)
+      for (const outputCurrency of currencies) {
+        const input = { underlying: inputCurrency },
+          output = { underlying: outputCurrency };
+        const native = inputCurrency.isNative || outputCurrency.isNative;
         if (
-          input === output ||
+          inputCurrency.wrapped.equals(outputCurrency.wrapped) ||
+          (process.env.CHECK_NATIVE === 'true' && !native) ||
           (process.env.CHECK_INPUT &&
             input.underlying.symbol !== process.env.CHECK_INPUT)
         )
@@ -141,7 +156,9 @@ async function main() {
             specified.underlying.decimals === 18
               ? '100000000000000'
               : '1000000';
-          const blockNumber = await provider.getBlockNumber();
+          const blockNumber = Number(
+            await provider.send('eth_blockNumber', [])
+          );
           const router = new AlphaRouter({ chainId: 84532, provider });
           const result = await router.route(
             CurrencyAmount.fromRawAmount(specified.underlying, raw),
@@ -149,7 +166,13 @@ async function main() {
               ? output.underlying
               : input.underlying,
             tradeType,
-            options,
+            native
+              ? {
+                  ...options,
+                  universalRouter: universal.address,
+                  deadline: (await provider.getBlock('latest')).timestamp + 600,
+                }
+              : options,
             {
               blockNumber,
               maxSwapsPerPath: 2,
@@ -169,17 +192,44 @@ async function main() {
               result.route.some((r) => isTokenizeRoute(r.route)),
               'Expected fee-earning Tokenize route'
             );
-          const tokenIn = new Contract(input.underlying.address, abi, provider);
-          const tokenOut = new Contract(
-            output.underlying.address,
+          const tokenIn = new Contract(
+            input.underlying.wrapped.address,
             abi,
             provider
           );
-          for (const executor of ['direct', 'universal']) {
+          const tokenOut = new Contract(
+            output.underlying.wrapped.address,
+            abi,
+            provider
+          );
+          for (const executor of native
+            ? ['universal']
+            : ['direct', 'universal']) {
             const snapshot = await provider.send('evm_snapshot', []);
             try {
-              const beforeIn = await tokenIn.balanceOf(account),
-                beforeOut = await tokenOut.balanceOf(account);
+              const recipient = native
+                ? '0x0000000000000000000000000000000000001234'
+                : account;
+              const balanceIn = () =>
+                inputCurrency.isNative
+                  ? provider.getBalance(account)
+                  : tokenIn.balanceOf(account);
+              const balanceOut = () =>
+                outputCurrency.isNative
+                  ? provider.getBalance(recipient)
+                  : tokenOut.balanceOf(recipient);
+              const beforeIn = await balanceIn(),
+                beforeOut = await balanceOut();
+              if (inputCurrency.isNative) {
+                // Native swaps must succeed without any WETH/Permit2 allowance.
+                await (
+                  await tokenIn.connect(signer).approve(permit2Address, 0)
+                ).wait();
+                await (
+                  await tokenIn.connect(signer).approve(config.router, 0)
+                ).wait();
+              }
+              const ethBefore = await provider.getBalance(account);
               const params: MethodParameters =
                 executor === 'direct'
                   ? result.methodParameters
@@ -187,6 +237,7 @@ async function main() {
                       result.trade,
                       {
                         ...options,
+                        recipient,
                         universalRouter: universal.address,
                         deadline:
                           (await provider.getBlock('latest')).timestamp + 600,
@@ -208,10 +259,36 @@ async function main() {
                   await new Promise((resolve) => setTimeout(resolve, 100));
               }
               assert.equal(receipt?.status, '0x1', 'Swap reverted: ' + hash);
-              const paid = beforeIn.sub(await tokenIn.balanceOf(account));
-              const received = (await tokenOut.balanceOf(account)).sub(
-                beforeOut
-              );
+              const fullReceipt = await provider.getTransactionReceipt(hash);
+              const paid = inputCurrency.isNative
+                ? ethBefore
+                    .sub(await balanceIn())
+                    .sub(fullReceipt.gasUsed.mul(fullReceipt.effectiveGasPrice))
+                : beforeIn.sub(await balanceIn());
+              const received = (await balanceOut()).sub(beforeOut);
+              if (native) {
+                const weth = new Contract(
+                  config.tokens[2]!.underlying.address,
+                  abi,
+                  provider
+                );
+                assert(
+                  (await weth.balanceOf(universal.address)).isZero(),
+                  'Residual WETH'
+                );
+                assert(
+                  (await provider.getBalance(universal.address)).isZero(),
+                  'Residual ETH'
+                );
+                if (
+                  inputCurrency.isNative &&
+                  tradeType === TradeType.EXACT_OUTPUT
+                )
+                  assert(
+                    paid.lt(BigNumber.from(params.value)),
+                    'Unused ETH was not refunded to payer'
+                  );
+              }
               assert(paid.gt(0) && received.gt(0), 'Zero economic swap');
               assert(
                 paid.lte(

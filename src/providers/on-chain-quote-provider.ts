@@ -683,7 +683,11 @@ export class OnChainQuoteProvider implements IOnChainQuoteProvider {
             case Protocol.V4:
               return [
                 {
-                  exactCurrency: getAddress(amount.currency),
+                  exactCurrency: getAddress(
+                    functionName === 'quoteExactInput'
+                      ? route.pathInput
+                      : route.pathOutput
+                  ),
                   path: encodedRoute as PathKey[],
                   exactAmount: amount.quotient.toString(),
                 },

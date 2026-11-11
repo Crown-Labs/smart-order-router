@@ -1,3 +1,5 @@
+import { Ether } from '@kittycorn-labs/sdk-core';
+import { routeToString } from '../../../../src/util/routes';
 import { BigNumber } from '@ethersproject/bignumber';
 import { encodeSqrtRatioX96, TickMath } from '@kittycorn-labs/v3-sdk';
 import {
@@ -116,6 +118,22 @@ describe('Kittycorn ERC4626 routing', () => {
       pools,
       1
     );
+    const eth = Ether.onChain(84532);
+    for (const [input, output] of [
+      [eth, usdc!.underlying],
+      [usdc!.underlying, eth],
+    ]) {
+      const native = computeAllV4Routes(input!, output!, pools, 1);
+      expect(native).toHaveLength(1);
+      expect(native[0]!.input).toBe(input);
+      expect(native[0]!.output).toBe(output);
+      expect(
+        native[0]!.currencyPath.every((currency) => currency.isToken)
+      ).toBe(true);
+      expect(routeToString(native[0]!)).toContain(
+        input!.isNative ? 'ETH → WETH' : 'WETH → ETH'
+      );
+    }
     expect(one).toHaveLength(1);
     expect(one[0]!.pools).toHaveLength(3);
     const two = computeAllV4Routes(

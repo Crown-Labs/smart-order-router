@@ -79,12 +79,21 @@ export const poolToString = (pool: TPool): string => {
 export const routeToString = (route: SupportedRoutes): string => {
   const tokens = routeToTokens(route);
   const pools = routeToPools(route);
-  return tokens
+  const path = tokens
     .map(
       (token, i) =>
         `${token.symbol}${i < pools.length ? poolToString(pools[i]!) : ''}`
     )
     .join('');
+  const wrap =
+    route.input.isNative && !tokens[0]!.isNative
+      ? `${route.input.symbol} → `
+      : '';
+  const unwrap =
+    route.output.isNative && !tokens[tokens.length - 1]!.isNative
+      ? ` → ${route.output.symbol}`
+      : '';
+  return wrap + path + unwrap;
 };
 
 export const routeAmountsToString = (
